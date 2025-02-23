@@ -42,7 +42,6 @@ const ExercisesScreen = () => {
   const route = useRoute();
   const { conceptId } = route.params as { conceptId: number };
   const { updateConceptProgress } = useProgress();
-  
   const [currentExercise, setCurrentExercise] = useState(0);
   const [attemptsLeft, setAttemptsLeft] = useState(3);
   const [userAnswer, setUserAnswer] = useState('');

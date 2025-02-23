@@ -53,9 +53,6 @@ const Dashboard: React.FC = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <Ionicons name="log-out-outline" size={28} color="#fff" />
-            </TouchableOpacity>
 
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.welcomeContainer}>
@@ -65,6 +62,9 @@ const Dashboard: React.FC = () => {
                     <Text style={[styles.userName, { fontFamily: 'Din-Round' }]}>
                         {user?.firstname} {user?.secondname}
                     </Text>
+                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                        <Ionicons name="log-out-outline" size={28} color="#fff" />
+                    </TouchableOpacity>
                 </View>
 
                 <Text style={[styles.progressTitle, { fontFamily: 'Din-Round' }]}>
@@ -93,9 +93,9 @@ const Dashboard: React.FC = () => {
                                 <Text style={styles.moduleDesc}>{mod.description}</Text>
                             </View>
                             <Text style={styles.moduleStatus}>
-                                {mod.completed ? <Ionicons name="checkmark-circle" size={24} color="#00ADB5" /> : mod.unlocked ? 
-                                <Ionicons name="lock-open" size={24} color="#fff" style={styles.moduleIcon} /> : 
-                                <Ionicons name="lock-closed" size={24} color="#fff" style={styles.moduleIcon} />   }
+                                {mod.completed ? <Ionicons name="checkmark-circle" size={24} color="#00ADB5" /> : mod.unlocked ?
+                                    <Ionicons name="lock-open" size={24} color="#fff" style={styles.moduleIcon} /> :
+                                    <Ionicons name="lock-closed" size={24} color="#fff" style={styles.moduleIcon} />}
                             </Text>
                         </TouchableOpacity>
 
@@ -179,15 +179,12 @@ const styles = StyleSheet.create({
     },
     logoutButton: {
         position: 'absolute',
-        top: 25,
-        right: 25,
+        right: 1,
         zIndex: 2,
-        padding: 10,
+        top:7.5,
     },
 
-    logout: {
-        top: 5,
-    },
+    
     scrollContainer: {
         padding: 20
     },
@@ -261,7 +258,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#2D3238',
         opacity: 0.7,
     },
-
 
     percentageText: {
         color: '#EEEEEE',

@@ -7,7 +7,6 @@ import {
   SafeAreaView,
   TextInput,
   ActivityIndicator,
-  Modal,
   Animated,
 } from 'react-native';
 import * as SQLite from 'expo-sqlite';
@@ -17,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import animation from '../assets/login_animated.json';
-
+import { Ionicons } from '@expo/vector-icons';
 
 const LoginForm: React.FC = () => {
   const navigation = useNavigation();
@@ -29,55 +28,36 @@ const LoginForm: React.FC = () => {
   const [password, setPassword] = useState<string>('');
   const [emailError, setEmailError] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string>('');
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
-  const [modalMessage, setModalMessage] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isEmailFocused, setIsEmailFocused] = useState(false);
-  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const emailAnim = useRef(new Animated.Value(0)).current;
-  const passwordAnim = useRef(new Animated.Value(0)).current;
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const notificationAnim = useRef(new Animated.Value(-100)).current;
 
-  const handleFocus = (type: 'email' | 'password') => {
-    if (type === 'email') {
-      setIsEmailFocused(true);
-      Animated.timing(emailAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: false,
-      }).start();
-    } else {
-      setIsPasswordFocused(true);
-      Animated.timing(passwordAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: false,
-      }).start();
-    }
-  };
-
-  const handleBlur = (type: 'email' | 'password') => {
-    if (type === 'email') {
-      setIsEmailFocused(false);
-      if (!email) {
-        Animated.timing(emailAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: false,
-        }).start();
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
-    } else {
-      setIsPasswordFocused(false);
-      if (!password) {
-        Animated.timing(passwordAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: false,
-        }).start();
-      }
-    }
-  };
+    };
+  }, []);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (errorMessage) {
+      Animated.timing(notificationAnim, {
+        toValue: 0,
+        duration: 700,
+        useNativeDriver: true,
+      }).start();
+
+      timeoutRef.current = setTimeout(() => {
+        Animated.timing(notificationAnim, {
+          toValue: -100,
+          duration: 700,
+          useNativeDriver: true,
+        }).start(() => setErrorMessage(''));
+      }, 1700);
+    }
+  }, [errorMessage]);
 
   useEffect(() => {
     async function initDb() {
@@ -91,16 +71,24 @@ const LoginForm: React.FC = () => {
     initDb();
   }, []);
 
-  if (!fontsLoaded || !db) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
-  }
-
   const validateEmail = (text: string): void => {
-    setEmailError(text.trim() === '' ? 'El correo electrónico es requerido' : !text.includes('@') ? 'El correo electrónico debe contener "@"' : '');
+    setEmailError(
+      text.trim() === ''
+        ? 'El correo electrónico es requerido'
+        : !text.includes('@')
+          ? 'El correo electrónico debe contener "@"'
+          : ''
+    );
   };
 
   const validatePassword = (text: string): void => {
-    setPasswordError(text.trim() === '' ? 'La contraseña es requerida' : text.length < 6 ? 'La contraseña debe tener al menos 6 caracteres' : '');
+    setPasswordError(
+      text.trim() === ''
+        ? 'La contraseña es requerida'
+        : text.length < 6
+          ? 'La contraseña debe tener al menos 6 caracteres'
+          : ''
+    );
   };
 
   const handleEmailChange = (text: string): void => {
@@ -113,15 +101,9 @@ const LoginForm: React.FC = () => {
     validatePassword(text);
   };
 
-  const showModal = (message: string) => {
-    setModalMessage(message);
-    setModalVisible(true);
-    fadeAnim.setValue(0);
-    Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-  };
-
-  const hideModal = () => {
-    Animated.timing(fadeAnim, { toValue: 0, duration: 500, useNativeDriver: true }).start(() => setModalVisible(false));
+  const showError = (message: string) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setErrorMessage(message);
   };
 
   const handleLogin = async (): Promise<void> => {
@@ -134,17 +116,21 @@ const LoginForm: React.FC = () => {
 
         if (result.length > 0) {
           const userData = result[0];
-          await AsyncStorage.setItem('userData', JSON.stringify(userData))
+          await AsyncStorage.setItem('userData', JSON.stringify(userData));
           setTimeout(() => navigation.navigate('Dashboard'));
         } else {
-          showModal('Credenciales incorrectas');
+          showError('Correo o contraseña incorrectos.');
         }
       } catch (error) {
         console.error('Error:', error);
-        showModal('Error al iniciar sesión');
+        showError('Error al iniciar sesión');
       }
     }
   };
+
+  if (!fontsLoaded || !db) {
+    return <ActivityIndicator size="large" color="#0000ff" />;
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -153,7 +139,7 @@ const LoginForm: React.FC = () => {
           source={animation}
           autoPlay
           loop
-          style={[styles.animation, { backgroundColor: 'transparent' }]}
+          style={styles.animation}
           colorFilters={[
             {
               keypath: "bg",
@@ -162,8 +148,46 @@ const LoginForm: React.FC = () => {
           ]}
         />
         <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>Iniciar sesión</Text>
-        <View style={styles.formContainer}>
 
+        {/* Notificación de error */}
+        {errorMessage ? (
+          <Animated.View
+            style={[
+              styles.notification,
+              {
+                transform: [{ translateY: notificationAnim }],
+                opacity: notificationAnim.interpolate({
+                  inputRange: [-100, 0],
+                  outputRange: [0, 1]
+                })
+              }
+            ]}
+          >
+
+            <View style={{ position: 'relative' }}>
+              <Ionicons name="close-circle" size={28} color="#f44336" />
+              <Ionicons
+                name="close"
+                size={18}
+                color="white"
+                style={{
+                  position: 'absolute',
+                  top: 5,
+                  left: 5
+                }}
+              />
+            </View>
+
+
+
+            <Text style={styles.notificationText}>
+
+              {errorMessage}
+            </Text>
+          </Animated.View>
+        ) : null}
+
+        <View style={styles.formContainer}>
           {/* Campo de Email */}
           <TextInput
             style={[styles.input, { fontFamily: 'Din-Round' }]}
@@ -171,6 +195,8 @@ const LoginForm: React.FC = () => {
             placeholderTextColor="#888"
             value={email}
             onChangeText={handleEmailChange}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
           {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
@@ -183,6 +209,7 @@ const LoginForm: React.FC = () => {
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={handlePasswordChange}
+              autoCapitalize="none"
             />
             <TouchableOpacity
               style={styles.eyeIcon}
@@ -201,23 +228,12 @@ const LoginForm: React.FC = () => {
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={handleLogin}
+            activeOpacity={0.8}
           >
             <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>INGRESAR</Text>
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Modal */}
-      <Modal transparent visible={modalVisible} animationType="none" onRequestClose={hideModal}>
-        <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>{modalMessage}</Text>
-            <TouchableOpacity onPress={hideModal} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Cerrar</Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </Modal>
     </SafeAreaView>
   );
 };
@@ -263,6 +279,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: '100%',
     alignItems: 'center',
+    marginTop: 10,
   },
   primaryButtonText: {
     color: '#EEEEEE',
@@ -273,41 +290,8 @@ const styles = StyleSheet.create({
     color: '#FF616D',
     alignSelf: 'flex-start',
     marginLeft: 15,
-    marginBottom: 15
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: '#393E46',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center'
-  },
-  modalText: {
-    fontSize: 18,
-    color: '#EEEEEE',
-    marginBottom: 20
-  },
-  closeButton: {
-    backgroundColor: '#00ADB5',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10
-  },
-  closeButtonText: {
-    color: '#EEEEEE',
-    fontSize: 16
-  },
-  icon: {
-    position: 'absolute',
-    left: 15,
-    top: 15,
-    zIndex: 2,
+    marginBottom: 15,
+    fontFamily: 'Din-Round',
   },
   eyeIcon: {
     position: 'absolute',
@@ -318,11 +302,38 @@ const styles = StyleSheet.create({
   passwordContainer: {
     width: '100%',
     position: 'relative',
+    marginBottom: 5,
   },
   animation: {
     width: 270,
     height: 270,
     marginBottom: 20,
+  },
+  notification: {
+    position: 'absolute',
+    top: 10,
+    alignSelf: 'center',
+    backgroundColor: '#222831',
+    padding: 13,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 100,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    right: 15,
+  },
+  notificationText: {
+    color: 'white',
+    marginLeft: 5,
+    fontFamily: 'Din-Round',
+    fontSize: 17,
   },
 });
 
