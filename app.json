@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Edumática",
-    "slug": "Edumática",
+    "name": "Edúmatica",
+    "slug": "edumatica",
     "version": "1.0.0",
     "web": {
       "favicon": "./assets/favicon.png"
@@ -52,7 +52,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "e1ec55f2-0dd3-4be5-8257-fc0bb0305bf9"
+        "projectId": "49f8270e-2e82-4a92-9290-547d43e40338"
       }
     }
   }

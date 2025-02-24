@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Bar } from 'react-native-progress';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProgress } from './contexts/ProgressContext';
+import RotatableIcon from './rotateChevronIcon'
 
 const Dashboard: React.FC = () => {
     const navigation = useNavigation();
@@ -51,6 +52,12 @@ const Dashboard: React.FC = () => {
         );
     }
 
+
+
+
+
+
+
     return (
         <SafeAreaView style={styles.container}>
 
@@ -92,13 +99,13 @@ const Dashboard: React.FC = () => {
                                 <Text style={styles.moduleTitle}>{mod.title}</Text>
                                 <Text style={styles.moduleDesc}>{mod.description}</Text>
                             </View>
-                            <Text style={styles.moduleStatus}>
-                                {mod.completed ? <Ionicons name="checkmark-circle" size={24} color="#00ADB5" /> : mod.unlocked ?
-                                    <Ionicons name="lock-open" size={24} color="#fff" style={styles.moduleIcon} /> :
-                                    <Ionicons name="lock-closed" size={24} color="#fff" style={styles.moduleIcon} />}
-                            </Text>
+                            <RotatableIcon
+                                isExpanded={expandedModule === mod.id}
+                                onPress={() => toggleModuleExpansion(mod.id)}
+                                mod={mod}
+                                disabled={!mod.unlocked}
+                            />
                         </TouchableOpacity>
-
                         {expandedModule === mod.id && (
                             <Animated.View entering={FadeInUp.duration(600)} style={styles.conceptsList}>
                                 {mod.concepts.map((concept, index) => (
@@ -181,10 +188,10 @@ const styles = StyleSheet.create({
         position: 'absolute',
         right: 1,
         zIndex: 2,
-        top:7.5,
+        top: 7.5,
     },
 
-    
+
     scrollContainer: {
         padding: 20
     },
