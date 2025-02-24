@@ -177,12 +177,9 @@ const LoginForm: React.FC = () => {
                 }}
               />
             </View>
-
-
-
             <Text style={styles.notificationText}>
 
-              {errorMessage}
+            {errorMessage}
             </Text>
           </Animated.View>
         ) : null}
