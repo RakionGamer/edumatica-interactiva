@@ -25,7 +25,6 @@ interface ProgressContextType {
 }
 
 const ProgressContext = createContext<ProgressContextType | undefined>(undefined);
-
 export const ProgressProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [expandedModule, setExpandedModule] = useState<number | null>(null);
   const [modules, setModules] = useState<Module[]>([

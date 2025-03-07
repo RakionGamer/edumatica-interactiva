@@ -52,12 +52,7 @@ const Dashboard: React.FC = () => {
         );
     }
 
-
-
-
-
-
-
+    const ModulesCompleted = modules.filter(mod => mod.completed).length
     return (
         <SafeAreaView style={styles.container}>
 
@@ -78,20 +73,53 @@ const Dashboard: React.FC = () => {
                     Tu Progreso
                 </Text>
 
-                <Bar
-                    progress={modules.filter(mod => mod.completed).length / modules.length}
-                    width={0}
-                    height={10}
-                    color="#00ADB5"
-                    borderWidth={0}
-                    style={styles.progressBar}
-                />
+                <View style={styles.timelineContainerStar}>
+                    <View style={styles.starsWrapper}>
+                        <View style={styles.starsContainer}>
+                            {modules.map((mod, index) => (
+                                <View 
+                                style={styles.starWrapper}
+                                key={`star-${mod.id}`}>
+                                    <View style={styles.starBackground} />
+                                    <Ionicons
+                                        name={mod.completed ? 'star' : 'star-outline'}
+                                        size={24}
+                                        color={mod.completed ? '#00ADB5' : '#393E46'}
+
+                                    />
+                                </View>
+                            ))}
+                        </View>
+                        <View style={styles.connectingLineContainer}>
+                            {modules.slice(0, -1).map((mod, index) => (
+                                <View
+                                    key={`segment-${mod.id}-${index}`} 
+                                    style={[
+                                        styles.connectingSegment,
+                                        {
+                                            backgroundColor: mod.completed ? '#00ADB5' : '#393E46',
+                                            marginRight: index === modules.length - 2 ? 0 : 3
+                                        }
+                                    ]}
+                                />
+                            ))}
+                        </View>
+                    </View>
+                    {ModulesCompleted == 1 ?
+                        <Text style={styles.completedModulesText}>
+                            {ModulesCompleted} módulo completado
+                        </Text>
+                        :
+                        <Text style={styles.completedModulesText}>
+                            {ModulesCompleted} módulos completados
+                        </Text>
+                    }
+                </View>
 
                 {modules.map(mod => (
                     <Animated.View key={mod.id} entering={FadeInUp.duration(600)}>
                         <TouchableOpacity
                             style={[styles.moduleCard, mod.unlocked ? styles.unlocked : styles.locked]}
-                            disabled={!mod.unlocked}
                             onPress={() => toggleModuleExpansion(mod.id)}
                         >
                             <Ionicons name="book" size={24} color="#fff" style={styles.moduleIcon} />
@@ -120,9 +148,7 @@ const Dashboard: React.FC = () => {
                                         <TouchableOpacity
                                             style={[styles.conceptCard, !concept.unlocked && styles.lockedConcept]}
                                             onPress={() => {
-                                                if (concept.unlocked) {
-                                                    navigation.navigate('ConceptGuide', { conceptId: concept.id });
-                                                }
+                                                concept.unlocked ? navigation.navigate('ConceptGuide', { conceptId: concept.id}): console.log('No se encuentra la guia')
                                             }}
                                             disabled={!concept.unlocked}
                                         >
@@ -198,7 +224,7 @@ const styles = StyleSheet.create({
     progressTitle: {
         fontSize: 20,
         color: '#EEEEEE',
-        marginBottom: 15
+
     },
 
     moduleCard: {
@@ -322,6 +348,66 @@ const styles = StyleSheet.create({
         flex: 1,
     },
 
+    starsWrapper: {
+        flex: 1,
+        height: 24,
+        position: 'relative',
+        backgroundColor: '#222831', // Color de fondo principal
+    
+    },
+    starsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        position: 'relative',
+        zIndex: 2, // Asegura que esté sobre las líneas
+        right: 8,
+        width: '75%',
+    },
+    starWrapper: {
+        width: 30, // Aumentado para contener el fondo
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    starBackground: {
+        position: 'absolute',
+        width: 10, // Diámetro del círculo de fondo
+        height: 20,
+        borderRadius: 14, // Circular
+        backgroundColor: '#222831', // Mismo que el fondo principal
+    },
+    connectingLineContainer: {
+        position: 'absolute',
+        left: 10, // Ajuste fino para alineación
+        right: 75,
+        top: '56.5%',
+        height: 3,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        transform: [{ translateY: -1 }],
+        zIndex: 1,
+    },
+    connectingSegment: {
+        flex: 1,
+        height: '100%',
+    },
+
+
+
+    completedModulesText: {
+        color: '#00ADB5',
+        fontFamily: 'Din-Round',
+        fontSize: 14,
+        marginLeft: 15,
+    },
+
+    timelineContainerStar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginVertical: 16,
+        paddingHorizontal: 2,
+        marginBottom: 22,
+    }
 });
 
 export default Dashboard;
