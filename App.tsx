@@ -85,12 +85,12 @@ export default function App() {
                 headerBackTitle: 'Volver',
                 headerTitleAlign: 'center',
                 headerStyle: {
-                  backgroundColor: '#222831', // Dark background color
+                  backgroundColor: '#222831', 
                 },
                 headerTintColor: '#EEEEEE',
                 headerTitleStyle: {
                   fontFamily: 'Din-Round',
-                  color: '#EEEEEE', // Explicit text color for title
+                  color: '#EEEEEE', 
                 },
                 presentation: 'transparentModal'
 

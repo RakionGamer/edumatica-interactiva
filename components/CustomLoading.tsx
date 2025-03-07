@@ -13,7 +13,6 @@ const CustomLoading = () => (
         color="#00ADB5"
         style={{ marginBottom: 20 }}
       />
-      {/* Agrega texto o más elementos */}
       <Text style={{ 
         color: '#EEEEEE', 
         fontFamily: 'Din-Round',
@@ -23,7 +22,5 @@ const CustomLoading = () => (
       </Text>
     </View>
   );
-
-
 
 export default CustomLoading
