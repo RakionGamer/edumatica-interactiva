@@ -8,7 +8,6 @@ import registerForm from 'components/registerForm';
 import ConceptGuide from 'components/ConceptGuide';
 import ExercisesScreen from 'components/ExercisesScreen';
 import { StatusBar } from 'expo-status-bar';
-import DatabaseManager from './components/db/db';
 import { useFonts } from 'expo-font';
 import { ActivityIndicator, View } from 'react-native';
 import { ProgressProvider } from './components/contexts/ProgressContext';
@@ -30,13 +29,11 @@ export default function App() {
 
   return (
     <>
-    <DatabaseManager />
     <NavigationContainer
         theme={DarkTheme
         }>
-      
       <ProgressProvider>
-        
+
           <Stack.Navigator initialRouteName="Principal">
             <Stack.Screen
               name="Principal"

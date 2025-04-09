@@ -1,31 +1,17 @@
-import * as SQLite from 'expo-sqlite';
-import { useEffect } from 'react';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-const DatabaseManager = () => {
-    useEffect(() => {
-      const initializeDatabase = async () => {
-        try {
-          const db = await SQLite.openDatabaseAsync('dbMath.db');
-          await db.execAsync(`
+const firebaseConfig = {
+  apiKey: "AIzaSyDIdzPun_redYTs1F-0OMJOSs2SBb67k8g",
+  authDomain: "edumatica-interactiva-pg2.firebaseapp.com",
+  projectId: "edumatica-interactiva-pg2",
+  storageBucket: "edumatica-interactiva-pg2.firebasestorage.app",
+  messagingSenderId: "349803094210",
+  appId: "1:349803094210:web:ab2804d939692c02bbdb5b"
+};
 
-            PRAGMA foreign_keys = ON;
-
-            CREATE TABLE IF NOT EXISTS users (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              email TEXT NOT NULL,
-              password TEXT NOT NULL,
-              firstname TEXT NOT NULL,
-              secondname TEXT NOT NULL
-            );
-          `);
-          console.log('Base de datos iniciada.');
-        } catch (error) {
-          console.error('Database initialization error:', error);
-        }
-      };
-      initializeDatabase();
-    }, []);
-    return null;
-  };
-  
-  export default DatabaseManager;
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+export { auth, db };

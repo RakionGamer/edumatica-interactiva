@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Animated,
 } from 'react-native';
-import * as SQLite from 'expo-sqlite';
 import { useFonts } from 'expo-font';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,13 +16,25 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import animation from '../assets/login_animated.json';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  query,
+  where,
+  getDocs
+} from "firebase/firestore";
+import NetInfo from '@react-native-community/netinfo';
+import { db } from './db/db';
+
 
 const LoginForm: React.FC = () => {
   const navigation = useNavigation();
   const [fontsLoaded] = useFonts({
     'Din-Round': require('../assets/dinroundpro_bold.otf'),
   });
-  const [db, setDb] = useState<any>(null);
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [emailError, setEmailError] = useState<string>('');
@@ -32,7 +43,6 @@ const LoginForm: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const notificationAnim = useRef(new Animated.Value(-100)).current;
-
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -60,16 +70,57 @@ const LoginForm: React.FC = () => {
   }, [errorMessage]);
 
   useEffect(() => {
-    async function initDb() {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected);
+    });
+
+    NetInfo.fetch().then(state => {
+      setIsConnected(state.isConnected);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (isConnected === false) {
+      showError('No hay conexión a internet');
+    }
+  }, [isConnected]);
+
+
+  const handleLogin = async (): Promise<void> => {
+    const currentConnection = await NetInfo.fetch();
+    if (!currentConnection.isConnected) {
+      showError("No hay conexión a internet");
+      return;
+    }
+    if (!emailError && !passwordError && email && password) {
       try {
-        const database = await SQLite.openDatabaseAsync('dbMath.db');
-        setDb(database);
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", email));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+          showError("Usuario o contraseña incorrectas.");
+          return;
+        }
+        const userDoc = querySnapshot.docs[0];
+        const userData = userDoc.data();
+
+        if (userData.password === password) {
+          await AsyncStorage.setItem("userData", JSON.stringify({
+            uid: userDoc.id,
+            ...userData
+          }));
+          navigation.navigate("Dashboard");
+        } else {
+          showError("Usuario o contraseña incorrectas.");
+        }
       } catch (error) {
-        console.error('Error al abrir la base de datos:', error);
+        console.error("Error:", error);
+        showError("Error de conexión o no hay acceso a internet.");
       }
     }
-    initDb();
-  }, []);
+  };
 
   const validateEmail = (text: string): void => {
     setEmailError(
@@ -106,31 +157,21 @@ const LoginForm: React.FC = () => {
     setErrorMessage(message);
   };
 
-  const handleLogin = async (): Promise<void> => {
-    if (!emailError && !passwordError && email && password) {
-      try {
-        const result = await db.getAllAsync(
-          'SELECT firstname, secondname FROM users WHERE email = ? AND password = ?',
-          [email, password]
-        );
-
-        if (result.length > 0) {
-          const userData = result[0];
-          await AsyncStorage.setItem('userData', JSON.stringify(userData));
-          setTimeout(() => navigation.navigate('Dashboard'));
-        } else {
-          showError('Correo o contraseña incorrectos.');
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        showError('Error al iniciar sesión');
-      }
-    }
-  };
-
-  if (!fontsLoaded || !db) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
+  if (!fontsLoaded) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator size="large" color="#00ADB5" />
+      </SafeAreaView>
+    );
   }
+
+  {
+    isConnected === null && (
+      <ActivityIndicator size="large" color="#00ADB5" />
+    )
+  }
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -179,7 +220,7 @@ const LoginForm: React.FC = () => {
             </View>
             <Text style={styles.notificationText}>
 
-            {errorMessage}
+              {errorMessage}
             </Text>
           </Animated.View>
         ) : null}

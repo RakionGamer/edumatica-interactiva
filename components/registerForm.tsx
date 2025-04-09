@@ -248,7 +248,6 @@ const RegisterForm: React.FC = () => {
           )
           : null
       }
-
       {
         sucessMessage ?
           (
@@ -264,7 +263,6 @@ const RegisterForm: React.FC = () => {
                 }
               ]}
             >
-
               <View style={{ position: 'relative' }}>
                 <Ionicons name="checkmark-circle" size={28} color="#0bc904" />
                 <Ionicons
