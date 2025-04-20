@@ -3,14 +3,19 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Ale
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Bar } from 'react-native-progress';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProgress } from './contexts/ProgressContext';
 import RotatableIcon from './rotateChevronIcon'
 
+type RootStackParamList = {
+    Principal: undefined;
+    // Add other routes here if needed
+};
+
 const Dashboard: React.FC = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<NavigationProp<RootStackParamList>>();
     const [fontsLoaded] = useFonts({
         'Din-Round': require('../assets/dinroundpro_bold.otf'),
     });
@@ -41,7 +46,7 @@ const Dashboard: React.FC = () => {
 
     const handleLogout = async () => {
         await AsyncStorage.removeItem('userData');
-        navigation.reset({ index: 0, routes: [{ name: 'Principal' as never }] });
+        navigation.navigate('Principal')
     };
 
     if (!fontsLoaded || loading) {

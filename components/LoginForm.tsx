@@ -76,9 +76,6 @@ const LoginForm: React.FC = () => {
   }, [isProcessing]);
 
 
-
-
-
   useEffect(() => {
     if (errorMessage) {
       Animated.timing(notificationAnim, {
