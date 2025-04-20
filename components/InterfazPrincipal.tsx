@@ -1,67 +1,118 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
-import { useFonts } from 'expo-font';
-import { SvgUri } from 'react-native-svg';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 import animation from '../assets/index.json';
+import EducationIcon from '../assets/education-cap-svgrepo-com.svg';
+import { useFocusEffect } from '@react-navigation/native';
+import { Animated } from 'react-native';
+
 const Principal = () => {
   const navigation = useNavigation();
-  const [fontsLoaded] = useFonts({
-    'Din-Round': require('../assets/dinroundpro_bold.otf'),
+  const fadeAnim = new Animated.Value(0);
+  const headerY = new Animated.Value(0);
+  const contentY = new Animated.Value(0);
+  const buttonsY = new Animated.Value(0);
+  
+  const animateElements = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(headerY, {
+        toValue: 0,
+        duration: 600,
+        delay: 10,
+        useNativeDriver: true,
+      }),
+      
+      Animated.timing(contentY, {
+        toValue: 0,
+        duration: 600,
+        delay: 10,
+        useNativeDriver: true,
+      }),
+      
+      Animated.timing(buttonsY, {
+        toValue: 0,
+        duration: 550,
+        delay: 10,
+        useNativeDriver: true,
+      })
+    ]).start();
+  };
+
+  useFocusEffect(() => {
+    fadeAnim.setValue(0);
+    headerY.setValue(-15);
+    contentY.setValue(-20);
+    buttonsY.setValue(20);
+    animateElements();
   });
-
-
-  if (!fontsLoaded) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
-  }
-
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.headerFlex}>
-        <SvgUri
-          uri="https://www.svgrepo.com/show/443633/education-cap.svg"
-          width="20%"
-          height="20%"
-          fill="#EEEEEE"
-          style={styles.paddingSvg}>
-        </SvgUri>
-        <Text style={[styles.titleHeader, { fontFamily: 'Din-Round' }]}>Edúmatica Interactiva</Text>
-      </View>
       <View style={styles.content}>
-      <LottieView
-          source={animation}
-          autoPlay
-          loop
-          style={[styles.animation, { backgroundColor: 'transparent' }]}
-          colorFilters={[
-            {
-              keypath: "bg",
-              color: "transparent"
-            }
-          ]}
-        />
-        {/* Texto principal */}
-        <View style={styles.textContainer}>
-          <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>La forma divertida, efectiva y gratis de aprender matematicas!</Text>
-        </View>
-        {/* Botones */}
-        <View style={styles.buttonsContainer}>
-          <TouchableOpacity 
+        {/* Header con animación */}
+        <Animated.View style={[styles.headerFlex, {
+          opacity: fadeAnim,
+          transform: [{ translateY: headerY }]
+        }]}>
+          <EducationIcon
+            width={45} 
+            height={45}
+            fill="#EEEEEE"
+          />
+          <Text style={[styles.titleHeader, { fontFamily: 'Din-Round' }]}>
+            Edúmatica Interactiva
+          </Text>
+        </Animated.View>
+
+        <Animated.View style={{
+          opacity: fadeAnim,
+          transform: [{ translateY: contentY }]
+        }}>
+          <LottieView
+            source={animation}
+            autoPlay
+            loop
+            style={[styles.animation, { backgroundColor: 'transparent' }]}
+          />
+        </Animated.View>
+
+        <Animated.View style={[styles.textContainer, {
+          opacity: fadeAnim,
+          transform: [{ translateY: contentY }]
+        }]}>
+          <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>
+            La forma divertida, efectiva y gratis de aprender matemáticas!
+          </Text>
+        </Animated.View>
+
+        <Animated.View style={[styles.buttonsContainer, {
+          opacity: fadeAnim,
+          transform: [{ translateY: buttonsY }]
+        }]}>
+          <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => navigation.navigate('registerForm')}
           >
-            <Text style={[styles.primaryButtonText,{ fontFamily: 'Din-Round' }]}>EMPIEZA AHORA</Text>
+            <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>
+              EMPIEZA AHORA
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.secondaryButton}
             onPress={() => navigation.navigate('LoginForm')}
           >
-            <Text style={[styles.secondaryButtonText, { fontFamily: 'Din-Round' }]}>YA TENGO UNA CUENTA</Text>
+            <Text style={[styles.secondaryButtonText, { fontFamily: 'Din-Round' }]}>
+              YA TENGO UNA CUENTA
+            </Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
@@ -75,20 +126,15 @@ const styles = StyleSheet.create({
   headerFlex: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center', 
-    marginTop: 40,
-    width: '100%', 
-    position: 'relative', 
-  },
-  paddingSvg: {
-    padding: 20,
+    gap: 6,                  
+    paddingHorizontal: 22,    // Padding lateral para evitar bordes pegados
   },
   titleHeader: {
-    fontSize: 30,
+    fontSize: 25,
     fontWeight: 'bold',
     color: '#EEEEEE',
-    textAlign: 'center',
-    right: 15,
+    flexShrink: 1,            
+    paddingTop: 4,         
   },
   content: {
     flex: 1,
@@ -146,7 +192,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  
+
   animation: {
     width: 300,
     height: 300,

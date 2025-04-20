@@ -38,7 +38,8 @@ export const ProgressProvider: React.FC<{children: ReactNode}> = ({ children }) 
         { id: 1, name: 'Suma', progress: 0, unlocked: true, completed: false },
         { id: 2, name: 'Resta', progress: 0, unlocked: false, completed: false },
         { id: 3, name: 'Multiplicación', progress: 0, unlocked: false, completed: false },
-        { id: 4, name: 'División', progress: 0, unlocked: false, completed: false },
+        { id: 4, name: 'División', progress: 0, unlocked: false, completed: false }, 
+        { id: 5, name: 'Examen Integrado', progress: 0, unlocked: false, completed: false },
       ]
     },
     {

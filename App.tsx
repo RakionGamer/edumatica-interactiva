@@ -21,7 +21,7 @@ export default function App() {
 
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor:'#222831' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#222831' }}>
         <ActivityIndicator size="large" color="#EEEEEE" />
       </View>
     );
@@ -29,17 +29,24 @@ export default function App() {
 
   return (
     <>
-    <NavigationContainer
+      <NavigationContainer
         theme={DarkTheme
         }>
-      <ProgressProvider>
+        <ProgressProvider>
+          <Stack.Navigator
+            initialRouteName="Principal"
+            screenOptions={{
+              presentation: 'transparentModal',
+              animation: 'fade'
 
-          <Stack.Navigator initialRouteName="Principal">
+            }}
+          >
             <Stack.Screen
               name="Principal"
               component={Principal}
-              options={{ headerShown: false, presentation: 'transparentModal'
-               }}
+              options={{
+                headerShown: false
+              }}
             />
             <Stack.Screen
               name="registerForm"
@@ -49,9 +56,9 @@ export default function App() {
                 headerBackTitle: 'Volver',
                 headerTitleAlign: 'center',
                 headerStyle: {
-                  backgroundColor: '#222831', 
+                  backgroundColor: '#222831',
                 },
-                headerTintColor: '#EEEEEE', 
+                headerTintColor: '#EEEEEE',
                 headerTitleStyle: {
                   fontFamily: 'Din-Round',
                   color: '#EEEEEE',
@@ -82,21 +89,20 @@ export default function App() {
                 headerBackTitle: 'Volver',
                 headerTitleAlign: 'center',
                 headerStyle: {
-                  backgroundColor: '#222831', 
+                  backgroundColor: '#222831',
                 },
                 headerTintColor: '#EEEEEE',
                 headerTitleStyle: {
                   fontFamily: 'Din-Round',
-                  color: '#EEEEEE', 
+                  color: '#EEEEEE',
                 },
-                presentation: 'transparentModal'
 
               }}
             />
           </Stack.Navigator>
           <StatusBar style="auto" />
-        
-      </ProgressProvider>
+
+        </ProgressProvider>
       </NavigationContainer>
     </>
   );

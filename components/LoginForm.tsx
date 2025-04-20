@@ -42,6 +42,9 @@ const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const processingAnim = useRef(new Animated.Value(-100)).current;
+
   const notificationAnim = useRef(new Animated.Value(-100)).current;
   useEffect(() => {
     return () => {
@@ -50,6 +53,31 @@ const LoginForm: React.FC = () => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    let anim: Animated.CompositeAnimation;
+
+    if (isProcessing) {
+      anim = Animated.timing(processingAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      });
+    } else {
+      anim = Animated.timing(processingAnim, {
+        toValue: -100,
+        duration: 300,
+        useNativeDriver: true,
+      });
+    }
+
+    anim.start();
+    return () => anim.stop(); // Detener animación si el componente se desmonta
+  }, [isProcessing]);
+
+
+
+
 
   useEffect(() => {
     if (errorMessage) {
@@ -88,7 +116,12 @@ const LoginForm: React.FC = () => {
   }, [isConnected]);
 
 
+
   const handleLogin = async (): Promise<void> => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    setErrorMessage('');
+
     const currentConnection = await NetInfo.fetch();
     if (!currentConnection.isConnected) {
       showError("No hay conexión a internet");
@@ -121,6 +154,14 @@ const LoginForm: React.FC = () => {
       }
     }
   };
+  useEffect(() => {
+    return () => {
+      notificationAnim.stopAnimation();
+      processingAnim.stopAnimation();
+    };
+  }, []);
+
+
 
   const validateEmail = (text: string): void => {
     setEmailError(
@@ -153,8 +194,31 @@ const LoginForm: React.FC = () => {
   };
 
   const showError = (message: string) => {
+    setIsProcessing(false); // Asegurar que primero se desactiva el procesamiento
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setErrorMessage(message);
+
+    // Reiniciar posición de ambas animaciones
+    Animated.parallel([
+      Animated.timing(processingAnim, {
+        toValue: -100,
+        duration: 0,
+        useNativeDriver: true,
+      }),
+      Animated.timing(notificationAnim, {
+        toValue: -100,
+        duration: 0,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setErrorMessage(message);
+
+      // Animación de entrada para el error
+      Animated.timing(notificationAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
   if (!fontsLoaded) {
@@ -190,6 +254,23 @@ const LoginForm: React.FC = () => {
         />
         <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>Iniciar sesión</Text>
 
+
+        <Animated.View
+          style={[
+            styles.processingNotification,
+            {
+              transform: [{ translateY: processingAnim }],
+              opacity: processingAnim.interpolate({
+                inputRange: [-100, 0],
+                outputRange: [0, 1],
+              }),
+            },
+          ]}
+        >
+          <ActivityIndicator size="small" color="#00ADB5" />
+          <Text style={styles.processingNotificationText}>Procesando solicitud...</Text>
+        </Animated.View>
+
         {/* Notificación de error */}
         {errorMessage ? (
           <Animated.View
@@ -223,6 +304,10 @@ const LoginForm: React.FC = () => {
               {errorMessage}
             </Text>
           </Animated.View>
+
+
+
+
         ) : null}
 
         <View style={styles.formContainer}>
@@ -286,7 +371,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    marginBottom: 135,
+    marginBottom: 120,
   },
   title: {
     fontSize: 30,
@@ -372,6 +457,29 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontFamily: 'Din-Round',
     fontSize: 17,
+  },
+
+  processingNotification: {
+    position: 'absolute',
+    top: 10,
+    alignSelf: 'center',
+    backgroundColor: '#222831',
+    padding: 15,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  processingNotificationText: {
+    color: '#EEEEEE',
+    marginLeft: 10,
+    fontFamily: 'Din-Round',
+    fontSize: 16,
   },
 });
 

@@ -55,7 +55,6 @@ const Dashboard: React.FC = () => {
     const ModulesCompleted = modules.filter(mod => mod.completed).length
     return (
         <SafeAreaView style={styles.container}>
-
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.welcomeContainer}>
                     <Text style={[styles.welcomeTitle, { fontFamily: 'Din-Round' }]}>
@@ -182,9 +181,9 @@ const Dashboard: React.FC = () => {
 };
 
 
-
 const styles = StyleSheet.create({
     container: {
+        marginTop: 20,
         flex: 1,
         backgroundColor: '#222831'
     },
