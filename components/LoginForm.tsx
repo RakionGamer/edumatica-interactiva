@@ -114,6 +114,8 @@ const LoginForm: React.FC = () => {
 
 
 
+
+
   const handleLogin = async (): Promise<void> => {
     if (isProcessing) return;
     setIsProcessing(true);
@@ -141,7 +143,10 @@ const LoginForm: React.FC = () => {
             uid: userDoc.id,
             ...userData
           }));
-          navigation.navigate("Dashboard");
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Dashboard' as never }]
+          });
         } else {
           showError("Usuario o contraseña incorrectas.");
         }
@@ -232,6 +237,11 @@ const LoginForm: React.FC = () => {
     )
   }
 
+  const isFormValid = 
+  email.trim() !== '' && 
+  password.trim() !== '' && 
+  !emailError &&
+  !passwordError;
 
 
   return (
@@ -346,12 +356,18 @@ const LoginForm: React.FC = () => {
 
           {/* Botón de Ingreso */}
           <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={handleLogin}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>INGRESAR</Text>
-          </TouchableOpacity>
+                  style={[
+                    styles.primaryButton,
+                    !isFormValid && styles.disabledButton
+                  ]}
+                  onPress={handleLogin}
+                  activeOpacity={0.8}
+                  disabled={!isFormValid || isProcessing} // Deshabilitar también durante el procesamiento
+                >
+                  <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>
+                    REGISTRARSE
+                  </Text>
+                </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -478,6 +494,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Din-Round',
     fontSize: 16,
   },
+
+  disabledButton: {
+    backgroundColor: '#393E46',
+    opacity: 0.7,
+  }
 });
 
 export default LoginForm;

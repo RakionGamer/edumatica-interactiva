@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+
 interface Concept {
   id: number;
   name: string;
@@ -25,7 +26,7 @@ interface ProgressContextType {
 }
 
 const ProgressContext = createContext<ProgressContextType | undefined>(undefined);
-export const ProgressProvider: React.FC<{children: ReactNode}> = ({ children }) => {
+export const ProgressProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [expandedModule, setExpandedModule] = useState<number | null>(null);
   const [modules, setModules] = useState<Module[]>([
     {
@@ -38,7 +39,7 @@ export const ProgressProvider: React.FC<{children: ReactNode}> = ({ children }) 
         { id: 1, name: 'Suma', progress: 0, unlocked: true, completed: false },
         { id: 2, name: 'Resta', progress: 0, unlocked: false, completed: false },
         { id: 3, name: 'Multiplicación', progress: 0, unlocked: false, completed: false },
-        { id: 4, name: 'División', progress: 0, unlocked: false, completed: false }, 
+        { id: 4, name: 'División', progress: 0, unlocked: false, completed: false },
         { id: 5, name: 'Examen Integrado', progress: 0, unlocked: false, completed: false },
       ]
     },
@@ -66,23 +67,22 @@ export const ProgressProvider: React.FC<{children: ReactNode}> = ({ children }) 
     },
   ]);
 
+  
+
+
   const updateConceptProgress = (conceptId: number, amount: number) => {
     setModules(prevModules => {
       return prevModules.map(module => {
-        // Copia profunda de los conceptos
         const updatedConcepts = module.concepts.map(concept => ({ ...concept }));
-        
-        // Buscar el concepto a actualizar
         const conceptIndex = updatedConcepts.findIndex(c => c.id === conceptId);
         if (conceptIndex === -1) return module;
-
         const concept = updatedConcepts[conceptIndex];
         if (!concept.unlocked || concept.completed) return module;
 
         // Actualizar progreso
         const newProgress = Math.min(concept.progress + amount, 100);
         const completed = newProgress === 100;
-        
+
         // Actualizar concepto
         updatedConcepts[conceptIndex] = {
           ...concept,
@@ -95,7 +95,7 @@ export const ProgressProvider: React.FC<{children: ReactNode}> = ({ children }) 
         }
 
         const allCompleted = updatedConcepts.every(c => c.completed);
-    
+
         const updatedModule = {
           ...module,
           concepts: updatedConcepts,

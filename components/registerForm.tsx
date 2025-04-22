@@ -12,6 +12,11 @@ import * as SQLite from 'expo-sqlite';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 
+import { auth, db } from './db/db'; // Importa desde tu archivo de configuración
+import { collection, doc, writeBatch } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import NetInfo from '@react-native-community/netinfo';
+
 
 
 
@@ -20,23 +25,7 @@ const RegisterForm: React.FC = () => {
     'Din-Round': require('../assets/dinroundpro_bold.otf'),
   });
 
-  // Estado para guardar el objeto de base de datos
-  const [db, setDb] = useState<any>(null);
 
-  // Inicializamos la base de datos de forma asíncrona
-  useEffect(() => {
-    async function initDb() {
-      try {
-        const database = await SQLite.openDatabaseAsync('dbMath.db');
-        setDb(database);
-      } catch (error) {
-        console.error('Error al abrir la base de datos:', error);
-      }
-    }
-    initDb();
-  }, []);
-
-  // Estados de los campos del formulario y mensajes
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [firstname, setFirstname] = useState<string>('');
@@ -48,8 +37,9 @@ const RegisterForm: React.FC = () => {
   const [emailError, setEmailError] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string>('');
   const notificationAnim = useRef(new Animated.Value(-100)).current;
-
-
+  const processingAnim = useRef(new Animated.Value(-100)).current;
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
   useEffect(() => {
     return () => {
@@ -58,6 +48,29 @@ const RegisterForm: React.FC = () => {
       }
     };
   }, []);
+
+
+  useEffect(() => {
+    let anim: Animated.CompositeAnimation;
+
+    if (isProcessing) {
+      anim = Animated.timing(processingAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      });
+    } else {
+      anim = Animated.timing(processingAnim, {
+        toValue: -100,
+        duration: 300,
+        useNativeDriver: true,
+      });
+    }
+
+    anim.start();
+    return () => anim.stop(); // Detener animación si el componente se desmonta
+  }, [isProcessing]);
+
 
   useEffect(() => {
     if (errorMessage) {
@@ -77,6 +90,25 @@ const RegisterForm: React.FC = () => {
 
     }
   }, [errorMessage]);
+
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected);
+    });
+
+    NetInfo.fetch().then(state => {
+      setIsConnected(state.isConnected);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (isConnected === false) {
+      showError('No hay conexión a internet');
+    }
+  }, [isConnected]);
 
 
   useEffect(() => {
@@ -101,8 +133,29 @@ const RegisterForm: React.FC = () => {
 
 
   const showError = (message: string) => {
+    setIsProcessing(false);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setErrorMessage(message);
+
+    Animated.parallel([
+      Animated.timing(processingAnim, {
+        toValue: -100,
+        duration: 0,
+        useNativeDriver: true,
+      }),
+      Animated.timing(notificationAnim, {
+        toValue: -100,
+        duration: 0,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setErrorMessage(message);
+
+      Animated.timing(notificationAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
   const showSuccess = (message: string) => {
@@ -121,7 +174,6 @@ const RegisterForm: React.FC = () => {
     }
   };
 
-  // Validación de la contraseña
   const validatePassword = (text: string) => {
     if (text.trim() === '') {
       setPasswordError('La contraseña es requerida');
@@ -132,19 +184,16 @@ const RegisterForm: React.FC = () => {
     }
   };
 
-  // Manejo de cambio en el correo y validación inmediata
   const handleEmailChange = (text: string) => {
     setEmail(text);
     validateEmail(text);
   };
 
-  // Manejo de cambio en la contraseña y validación inmediata
   const handlePasswordChange = (text: string) => {
     setPassword(text);
     validatePassword(text);
   };
 
-  // Para nombre y apellido, eliminamos cualquier dígito al escribir
   const handleFirstnameChange = (text: string) => {
     const filtered = text.replace(/[0-9]/g, '');
     setFirstname(filtered);
@@ -156,50 +205,113 @@ const RegisterForm: React.FC = () => {
   };
 
   const handleRegister = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    setErrorMessage('');
+    const currentConnection = await NetInfo.fetch();
+    if (!currentConnection.isConnected) {
+      showError('Se requiere conexión a internet');
+      return;
+    }
+
+
     if (!email.trim() || !password.trim() || !firstname.trim() || !secondname.trim()) {
       setMessage('Todos los campos son obligatorios.');
       return;
     }
+
     if (emailError || passwordError) {
       setMessage('Corrige los errores antes de continuar.');
       return;
     }
 
-    console.log({ email, password, firstname, secondname });
-
     try {
-      const existingEmails = await db.getAllAsync(
-        'SELECT email FROM users WHERE email = ?',
-        [email]
-      );
+      // 1. Crear usuario en Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      if (user) {
+        const batch = writeBatch(db);
+        const userRef = doc(db, "users", user.uid);
+        batch.set(userRef, {
+          email: email,
+          firstname: firstname,
+          secondname: secondname,
+          createdAt: new Date()
+        });
 
-      if (existingEmails && existingEmails.length > 0) {
-        showError('Este correo ya está registrado.');
-        return;
+        const defaultModules = [{
+          id: 1,
+          title: 'Números y Operaciones',
+          description: 'Conceptos básicos.',
+          unlocked: true,
+          completed: false,
+          concepts: [
+            { id: 1, name: 'Suma', progress: 0, unlocked: true, completed: false },
+            { id: 2, name: 'Resta', progress: 0, unlocked: false, completed: false },
+            { id: 3, name: 'Multiplicación', progress: 0, unlocked: false, completed: false },
+            { id: 4, name: 'División', progress: 0, unlocked: false, completed: false },
+            { id: 5, name: 'Examen Integrado', progress: 0, unlocked: false, completed: false },
+          ]
+        },
+        {
+          id: 2,
+          title: 'Álgebra',
+          description: 'Ecuaciones y expresiones.',
+          unlocked: false,
+          completed: false,
+          concepts: [
+            { id: 5, name: 'Ecuaciones lineales', progress: 0, unlocked: false, completed: false },
+            { id: 6, name: 'Factorización', progress: 0, unlocked: false, completed: false },
+          ]
+        },
+        {
+          id: 3,
+          title: 'Geometría',
+          description: 'Figuras y espacios.',
+          unlocked: false,
+          completed: false,
+          concepts: [
+            { id: 7, name: 'Áreas y perímetros', progress: 0, unlocked: false, completed: false },
+            { id: 8, name: 'Volúmenes', progress: 0, unlocked: false, completed: false },
+          ]
+        }];
+
+        defaultModules.forEach(module => {
+          const moduleRef = doc(collection(userRef, "modules"), module.id.toString());
+          batch.set(moduleRef, module);
+        });
+
+        await batch.commit();
+
+
+        // 7. Limpiar formulario y navegar
+        showSuccess('Usuario registrado exitosamente.');
+        setEmail('');
+        setPassword('');
+        setFirstname('');
+        setSecondname('');
+        setIsProcessing(false);
+
       }
-
-      await db.runAsync(
-        'INSERT INTO users (email, password, firstname, secondname) VALUES (?, ?, ?, ?)',
-        [email, password, firstname, secondname]
-      );
-
-      showSuccess('Usuario registrado exitosamente.');
-      setEmail('');
-      setPassword('');
-      setFirstname('');
-      setSecondname('');
     } catch (error) {
-      if (error) {
-        showError('Error interno.');
-      } else {
-        console.error('Error durante el registro:', error);
-        showError('Error al registrar el usuario.');
-      }
+      console.error('Error durante el registro:', error);
+
+
+
+      showError(errorMessage);
     }
   };
 
 
 
+
+  const isFormValid = 
+  email.trim() !== '' && 
+  password.trim() !== '' && 
+  firstname.trim() !== '' && 
+  secondname.trim() !== '' &&
+  !emailError &&
+  !passwordError;
 
 
   if (!fontsLoaded || !db) {
@@ -210,7 +322,23 @@ const RegisterForm: React.FC = () => {
     <View style={styles.container}>
       <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>Registro de Usuario</Text>
 
-      {/* Notificación de error */}
+      <Animated.View
+        style={[
+          styles.processingNotification,
+          {
+            transform: [{ translateY: processingAnim }],
+            opacity: processingAnim.interpolate({
+              inputRange: [-100, 0],
+              outputRange: [0, 1],
+            }),
+          },
+        ]}
+      >
+        <ActivityIndicator size="small" color="#00ADB5" />
+        <Text style={styles.processingNotificationText}>Procesando solicitud...</Text>
+      </Animated.View>
+
+
       {
         errorMessage ?
           (
@@ -315,8 +443,18 @@ const RegisterForm: React.FC = () => {
         onChangeText={handlePasswordChange}
       />
       {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={[styles.buttonText, { fontFamily: 'Din-Round' }]}>Registrar</Text>
+      <TouchableOpacity
+        style={[
+          styles.button,
+          !isFormValid && styles.disabledButton
+        ]}
+        onPress={handleRegister}
+        activeOpacity={0.8}
+        disabled={!isFormValid || isProcessing} // Deshabilitar también durante el procesamiento
+      >
+        <Text style={[styles.buttonText, { fontFamily: 'Din-Round' }]}>
+          REGISTRARSE
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -397,6 +535,33 @@ const styles = StyleSheet.create({
     fontFamily: 'Din-Round',
     fontSize: 17,
   },
+
+  processingNotification: {
+    position: 'absolute',
+    top: 10,
+    alignSelf: 'center',
+    backgroundColor: '#222831',
+    padding: 15,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  processingNotificationText: {
+    color: '#EEEEEE',
+    marginLeft: 10,
+    fontFamily: 'Din-Round',
+    fontSize: 16,
+  },
+  disabledButton: {
+    backgroundColor: '#393E46',
+    opacity: 0.7,
+  }
 });
 
 export default RegisterForm;

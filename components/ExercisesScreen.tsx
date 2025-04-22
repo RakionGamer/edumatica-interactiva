@@ -70,13 +70,13 @@ const ExercisesScreen = () => {
         setAttemptsLeft(3);
       } else {
         Alert.alert('¡Buen trabajo!', `Has completado todos los ejercicios (+${newScore}%)`);
-        navigation.navigate('Dashboard');
+        navigation.navigate('Dashboard' as never);
       }
     } else {
       if (attemptsLeft === 1) {
         updateConceptProgress(conceptId, -15);
         Alert.alert('¡Oh no!', 'Has perdido 15% de progreso');
-        navigation.navigate('Dashboard');
+        navigation.navigate('Dashboard' as never);
       } else {
         setAttemptsLeft(prev => prev - 1);
         Alert.alert('Incorrecto', `Intentos restantes: ${attemptsLeft - 1}`);

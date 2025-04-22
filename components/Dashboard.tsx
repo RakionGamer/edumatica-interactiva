@@ -11,11 +11,14 @@ import RotatableIcon from './rotateChevronIcon'
 
 type RootStackParamList = {
     Principal: undefined;
-    // Add other routes here if needed
+    ConceptGuide: { conceptId: number };
 };
 
 const Dashboard: React.FC = () => {
     const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
+
+
     const [fontsLoaded] = useFonts({
         'Din-Round': require('../assets/dinroundpro_bold.otf'),
     });
@@ -188,7 +191,6 @@ const Dashboard: React.FC = () => {
 
 const styles = StyleSheet.create({
     container: {
-        marginTop: 20,
         flex: 1,
         backgroundColor: '#222831'
     },

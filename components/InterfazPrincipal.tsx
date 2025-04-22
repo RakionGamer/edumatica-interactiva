@@ -97,7 +97,7 @@ const Principal = () => {
         }]}>
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => navigation.navigate('registerForm')}
+            onPress={() => navigation.navigate('registerForm' as never)}
           >
             <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>
               EMPIEZA AHORA
@@ -106,7 +106,7 @@ const Principal = () => {
 
           <TouchableOpacity
             style={styles.secondaryButton}
-            onPress={() => navigation.navigate('LoginForm')}
+            onPress={() => navigation.navigate('LoginForm' as never)}
           >
             <Text style={[styles.secondaryButtonText, { fontFamily: 'Din-Round' }]}>
               YA TENGO UNA CUENTA

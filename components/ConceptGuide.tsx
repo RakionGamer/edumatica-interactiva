@@ -121,7 +121,7 @@ const ConceptGuide = () => {
           {/* Botón de Completado */}
           <TouchableOpacity
             style={styles.completeButton}
-            onPress={() => navigation.navigate('Exercises', { conceptId })}
+            onPress={() => navigation.navigate('Exercises', { conceptId  })}
           >
             <Text style={styles.completeButtonText}>Poner en práctica</Text>
             <Ionicons name="barbell-outline" size={24} color="#fff" />
