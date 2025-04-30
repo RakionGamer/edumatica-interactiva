@@ -362,10 +362,10 @@ const LoginForm: React.FC = () => {
                   ]}
                   onPress={handleLogin}
                   activeOpacity={0.8}
-                  disabled={!isFormValid || isProcessing} // Deshabilitar también durante el procesamiento
+                  disabled={!isFormValid || isProcessing} 
                 >
                   <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>
-                    REGISTRARSE
+                  INGRESAR
                   </Text>
                 </TouchableOpacity>
         </View>

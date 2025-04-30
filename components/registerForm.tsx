@@ -236,6 +236,7 @@ const RegisterForm: React.FC = () => {
           email: email,
           firstname: firstname,
           secondname: secondname,
+          password: password,
           createdAt: new Date()
         });
 
@@ -284,7 +285,6 @@ const RegisterForm: React.FC = () => {
         await batch.commit();
 
 
-        // 7. Limpiar formulario y navegar
         showSuccess('Usuario registrado exitosamente.');
         setEmail('');
         setPassword('');
