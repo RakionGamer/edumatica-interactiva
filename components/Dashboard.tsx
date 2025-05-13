@@ -8,6 +8,8 @@ import { Bar } from 'react-native-progress';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProgress } from './contexts/ProgressContext';
 import RotatableIcon from './rotateChevronIcon'
+import { auth } from './db/db';
+import ShimmerEffect from './contexts/ShimmerEffect';
 
 type RootStackParamList = {
     Principal: undefined;
@@ -16,9 +18,6 @@ type RootStackParamList = {
 
 const Dashboard: React.FC = () => {
     const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-
-
-
     const [fontsLoaded] = useFonts({
         'Din-Round': require('../assets/dinroundpro_bold.otf'),
     });
@@ -28,6 +27,7 @@ const Dashboard: React.FC = () => {
 
     const {
         modules,
+        loading: progressLoading,
         updateConceptProgress,
         toggleModuleExpansion,
         expandedModule
@@ -37,6 +37,7 @@ const Dashboard: React.FC = () => {
         const loadUserData = async () => {
             try {
                 const data = await AsyncStorage.getItem('userData');
+                console.log('Data: ', data);
                 if (data) setUser(JSON.parse(data));
             } catch (error) {
                 Alert.alert('Error', 'No se pudieron cargar los datos del usuario');
@@ -48,6 +49,7 @@ const Dashboard: React.FC = () => {
     }, []);
 
     const handleLogout = async () => {
+        await auth.signOut();
         await AsyncStorage.removeItem('userData');
         navigation.navigate('Principal')
     };
@@ -56,6 +58,7 @@ const Dashboard: React.FC = () => {
         return (
             <View style={styles.loaderContainer}>
                 <ActivityIndicator size="large" color="#00ADB5" />
+                <Text style={styles.loadingText}>Cargando..</Text>
             </View>
         );
     }
@@ -84,9 +87,9 @@ const Dashboard: React.FC = () => {
                     <View style={styles.starsWrapper}>
                         <View style={styles.starsContainer}>
                             {modules.map((mod, index) => (
-                                <View 
-                                style={styles.starWrapper}
-                                key={`star-${mod.id}`}>
+                                <View
+                                    style={styles.starWrapper}
+                                    key={`star-${mod.id}`}>
                                     <View style={styles.starBackground} />
                                     <Ionicons
                                         name={mod.completed ? 'star' : 'star-outline'}
@@ -100,7 +103,7 @@ const Dashboard: React.FC = () => {
                         <View style={styles.connectingLineContainer}>
                             {modules.slice(0, -1).map((mod, index) => (
                                 <View
-                                    key={`segment-${mod.id}-${index}`} 
+                                    key={`segment-${mod.id}-${index}`}
                                     style={[
                                         styles.connectingSegment,
                                         {
@@ -122,67 +125,93 @@ const Dashboard: React.FC = () => {
                         </Text>
                     }
                 </View>
-
-                {modules.map(mod => (
-                    <Animated.View key={mod.id} entering={FadeInUp.duration(600)}>
-                        <TouchableOpacity
-                            style={[styles.moduleCard, mod.unlocked ? styles.unlocked : styles.locked]}
-                            onPress={() => toggleModuleExpansion(mod.id)}
-                        >
-                            <Ionicons name="book" size={24} color="#fff" style={styles.moduleIcon} />
-                            <View style={styles.moduleInfo}>
-                                <Text style={styles.moduleTitle}>{mod.title}</Text>
-                                <Text style={styles.moduleDesc}>{mod.description}</Text>
-                            </View>
-                            <RotatableIcon
-                                isExpanded={expandedModule === mod.id}
-                                onPress={() => toggleModuleExpansion(mod.id)}
-                                mod={mod}
-                                disabled={!mod.unlocked}
-                            />
-                        </TouchableOpacity>
-                        {expandedModule === mod.id && (
-                            <Animated.View entering={FadeInUp.duration(600)} style={styles.conceptsList}>
-                                {mod.concepts.map((concept, index) => (
-                                    <View key={concept.id} style={styles.conceptItem}>
-                                        <View style={styles.timelineContainer}>
-                                            <View style={[styles.timelineDot, concept.unlocked ? styles.unlockedDot : styles.lockedDot]} />
-                                            {index !== mod.concepts.length - 1 && (
-                                                <View style={[styles.timelineLine, { backgroundColor: concept.completed ? '#00ADB5' : '#393E46' }]} />
-                                            )}
-                                        </View>
-
-                                        <TouchableOpacity
-                                            style={[styles.conceptCard, !concept.unlocked && styles.lockedConcept]}
-                                            onPress={() => {
-                                                concept.unlocked ? navigation.navigate('ConceptGuide', { conceptId: concept.id}): console.log('No se encuentra la guia')
-                                            }}
-                                            disabled={!concept.unlocked}
-                                        >
-                                            <View style={styles.conceptTextContainer}>
-                                                <Text style={styles.conceptTitle}>{concept.name}</Text>
-                                                <View style={styles.progressContainer}>
-                                                    <Bar
-                                                        progress={concept.progress / 100}
-                                                        width={null}
-                                                        height={8}
-                                                        color="#00ADB5"
-                                                        borderRadius={4}
-                                                        style={styles.progressBar}
-                                                    />
-                                                    <Text style={styles.percentageText}>
-                                                        {concept.progress}%
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                            {concept.completed && <Ionicons name="checkmark-circle" size={24} color="#00ADB5" />}
-                                        </TouchableOpacity>
+                {
+                    progressLoading ? (
+                        <View style={styles.modulesContainer}>
+            {[1, 2, 3].map((_, index) => (
+                <View
+                    key={`skeleton-${index}`}
+                    style={styles.skeletonModule}
+                >
+                    {/* Contenido del Skeleton */}
+                    <View style={styles.skeletonContent}>
+                        <View style={styles.skeletonIcon} />
+                        <View style={styles.skeletonTextContainer}>
+                            <View style={styles.skeletonTitle} />
+                            <View style={styles.skeletonDescription} />
+                        </View>
+                        <View style={styles.skeletonArrow} />
+                    </View>
+                    
+                    {/* Efecto Shimmer superpuesto */}
+                    <ShimmerEffect />
+                </View>
+            ))}
+        </View>
+                    ) : (
+                        modules.map(mod => (
+                            <Animated.View key={mod.id} entering={FadeInUp.duration(600)}>
+                                <TouchableOpacity
+                                    style={[styles.moduleCard, mod.unlocked ? styles.unlocked : styles.locked]}
+                                    onPress={() => toggleModuleExpansion(mod.id)}
+                                >
+                                    <Ionicons name="book" size={24} color="#fff" style={styles.moduleIcon} />
+                                    <View style={styles.moduleInfo}>
+                                        <Text style={styles.moduleTitle}>{mod.title}</Text>
+                                        <Text style={styles.moduleDesc}>{mod.description}</Text>
                                     </View>
-                                ))}
+                                    <RotatableIcon
+                                        isExpanded={expandedModule === mod.id}
+                                        onPress={() => toggleModuleExpansion(mod.id)}
+                                        mod={mod}
+                                        disabled={!mod.unlocked}
+                                    />
+                                </TouchableOpacity>
+                                {expandedModule === mod.id && (
+                                    <Animated.View entering={FadeInUp.duration(600)} style={styles.conceptsList}>
+                                        {mod.concepts.map((concept, index) => (
+                                            <View key={concept.id} style={styles.conceptItem}>
+                                                <View style={styles.timelineContainer}>
+                                                    <View style={[styles.timelineDot, concept.unlocked ? styles.unlockedDot : styles.lockedDot]} />
+                                                    {index !== mod.concepts.length - 1 && (
+                                                        <View style={[styles.timelineLine, { backgroundColor: concept.completed ? '#00ADB5' : '#393E46' }]} />
+                                                    )}
+                                                </View>
+
+                                                <TouchableOpacity
+                                                    style={[styles.conceptCard, !concept.unlocked && styles.lockedConcept]}
+                                                    onPress={() => {
+                                                        concept.unlocked ? navigation.navigate('ConceptGuide', { conceptId: concept.id }) : console.log('No se encuentra la guia')
+                                                    }}
+                                                    disabled={!concept.unlocked}
+                                                >
+                                                    <View style={styles.conceptTextContainer}>
+                                                        <Text style={styles.conceptTitle}>{concept.name}</Text>
+                                                        <View style={styles.progressContainer}>
+                                                            <Bar
+                                                                progress={concept.progress / 100}
+                                                                width={null}
+                                                                height={8}
+                                                                color="#00ADB5"
+                                                                borderRadius={4}
+                                                                style={styles.progressBar}
+                                                            />
+                                                            <Text style={styles.percentageText}>
+                                                                {concept.progress}%
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                    {concept.completed && <Ionicons name="checkmark-circle" size={24} color="#00ADB5" />}
+                                                </TouchableOpacity>
+                                            </View>
+                                        ))}
+                                    </Animated.View>
+                                )}
                             </Animated.View>
-                        )}
-                    </Animated.View>
-                ))}
+                        ))
+
+
+                    )}
             </ScrollView>
         </SafeAreaView>
     );
@@ -200,7 +229,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#222831'
     },
-
+    loadingText: {
+        color: '#EEEEEE',
+        marginTop: 10,
+        fontFamily: 'Din-Round',
+        fontSize: 16
+    },
 
     welcomeContainer: {
         marginBottom: 25,
@@ -359,7 +393,7 @@ const styles = StyleSheet.create({
         height: 24,
         position: 'relative',
         backgroundColor: '#222831', // Color de fondo principal
-    
+
     },
     starsContainer: {
         flexDirection: 'row',
@@ -413,7 +447,55 @@ const styles = StyleSheet.create({
         marginVertical: 16,
         paddingHorizontal: 2,
         marginBottom: 22,
-    }
+    },
+    modulesContainer: {
+        width: '100%',
+        gap: 12,
+    },
+    skeletonModule: {
+        height: 80,
+        borderRadius: 12,
+        backgroundColor: '#393E46',
+        overflow: 'hidden', // Importante para contener el shimmer
+        position: 'relative', // Para posicionar el shimmer correctamente
+        marginBottom: 12,
+    },
+    skeletonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        height: '100%',
+    },
+    skeletonIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#4A4F57',
+    },
+    skeletonTextContainer: {
+        flex: 1,
+        marginLeft: 16,
+        gap: 8,
+    },
+    skeletonTitle: {
+        height: 16,
+        width: '70%',
+        backgroundColor: '#4A4F57',
+        borderRadius: 4,
+    },
+    skeletonDescription: {
+        height: 12,
+        width: '50%',
+        backgroundColor: '#4A4F57',
+        borderRadius: 4,
+    },
+    skeletonArrow: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: '#4A4F57',
+    },
+
 });
 
 export default Dashboard;

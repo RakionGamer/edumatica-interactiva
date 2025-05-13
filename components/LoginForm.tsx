@@ -16,17 +16,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import animation from '../assets/login_animated.json';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  getFirestore,
-  collection,
-  doc,
-  getDoc,
-  query,
-  where,
-  getDocs
-} from "firebase/firestore";
 import NetInfo from '@react-native-community/netinfo';
-import { db } from './db/db';
+import { auth, db } from './db/db';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { getDoc, doc } from 'firebase/firestore';
+
 
 
 const LoginForm: React.FC = () => {
@@ -72,7 +66,7 @@ const LoginForm: React.FC = () => {
     }
 
     anim.start();
-    return () => anim.stop(); // Detener animación si el componente se desmonta
+    return () => anim.stop();
   }, [isProcessing]);
 
 
@@ -115,47 +109,6 @@ const LoginForm: React.FC = () => {
 
 
 
-
-  const handleLogin = async (): Promise<void> => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    setErrorMessage('');
-
-    const currentConnection = await NetInfo.fetch();
-    if (!currentConnection.isConnected) {
-      showError("No hay conexión a internet");
-      return;
-    }
-    if (!emailError && !passwordError && email && password) {
-      try {
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("email", "==", email));
-        const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) {
-          showError("Usuario o contraseña incorrectas.");
-          return;
-        }
-        const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data();
-
-        if (userData.password === password) {
-          await AsyncStorage.setItem("userData", JSON.stringify({
-            uid: userDoc.id,
-            ...userData
-          }));
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Dashboard' as never }]
-          });
-        } else {
-          showError("Usuario o contraseña incorrectas.");
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        showError("Error de conexión o no hay acceso a internet.");
-      }
-    }
-  };
   useEffect(() => {
     return () => {
       notificationAnim.stopAnimation();
@@ -223,6 +176,50 @@ const LoginForm: React.FC = () => {
     });
   };
 
+
+
+   const handleLogin = async (): Promise<void> => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    setErrorMessage('');
+    const currentConnection = await NetInfo.fetch();
+      if (!currentConnection.isConnected) {
+        showError("No hay conexión a internet");
+        return;
+      }
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (!userDoc.exists()) {
+        throw new Error("El usuario no existe en la base de datos");
+      }
+      const userData = userDoc.data();
+      await AsyncStorage.setItem('userData', JSON.stringify({
+        uid: user.uid,
+        email: user.email,
+        firstname: userData.firstname,
+        secondname: userData.secondname
+      }));
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Dashboard' as never }]
+      });
+    } catch (error: any) {
+      let errorMessage = "Usuario o contraseña incorrectos.";
+      if (error.code === 'auth/too-many-requests') {
+            errorMessage = "Demasiados intentos fallidos. Intente nuevamente más tarde";
+        } else if (error.code === 'auth/user-not-found') {
+            errorMessage = "Usuario o contraseña incorrectos.";
+        } else if (error.code === 'auth/wrong-password') {
+            errorMessage = "Usuario o contraseña incorrectos.";
+        }
+        showError(errorMessage);
+    }
+  };
+
+
   if (!fontsLoaded) {
     return (
       <SafeAreaView style={styles.container}>
@@ -237,12 +234,11 @@ const LoginForm: React.FC = () => {
     )
   }
 
-  const isFormValid = 
-  email.trim() !== '' && 
-  password.trim() !== '' && 
-  !emailError &&
-  !passwordError;
-
+  const isFormValid =
+    email.trim() !== '' &&
+    password.trim() !== '' &&
+    !emailError &&
+    !passwordError;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -260,8 +256,6 @@ const LoginForm: React.FC = () => {
           ]}
         />
         <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>Iniciar sesión</Text>
-
-
         <Animated.View
           style={[
             styles.processingNotification,
@@ -313,8 +307,6 @@ const LoginForm: React.FC = () => {
           </Animated.View>
 
 
-
-
         ) : null}
 
         <View style={styles.formContainer}>
@@ -356,18 +348,18 @@ const LoginForm: React.FC = () => {
 
           {/* Botón de Ingreso */}
           <TouchableOpacity
-                  style={[
-                    styles.primaryButton,
-                    !isFormValid && styles.disabledButton
-                  ]}
-                  onPress={handleLogin}
-                  activeOpacity={0.8}
-                  disabled={!isFormValid || isProcessing} 
-                >
-                  <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>
-                  INGRESAR
-                  </Text>
-                </TouchableOpacity>
+            style={[
+              styles.primaryButton,
+              !isFormValid && styles.disabledButton
+            ]}
+            onPress={handleLogin}
+            activeOpacity={0.8}
+            disabled={!isFormValid || isProcessing}
+          >
+            <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>
+              INGRESAR
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>

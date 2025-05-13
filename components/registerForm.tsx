@@ -8,11 +8,11 @@ import {
   ActivityIndicator,
   Animated
 } from 'react-native';
-import * as SQLite from 'expo-sqlite';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
-
-import { auth, db } from './db/db'; // Importa desde tu archivo de configuración
+import LottieView from 'lottie-react-native';
+import { auth, db } from './db/db';
+import animation from '../assets/register_animated.json';
 import { collection, doc, writeBatch } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import NetInfo from '@react-native-community/netinfo';
@@ -261,8 +261,9 @@ const RegisterForm: React.FC = () => {
           unlocked: false,
           completed: false,
           concepts: [
-            { id: 5, name: 'Ecuaciones lineales', progress: 0, unlocked: false, completed: false },
-            { id: 6, name: 'Factorización', progress: 0, unlocked: false, completed: false },
+            { id: 6, name: 'Ecuaciones lineales', progress: 0, unlocked: false, completed: false },
+            { id: 7, name: 'Factorización', progress: 0, unlocked: false, completed: false },
+            { id: 8, name: 'Examen Integrado', progress: 0, unlocked: false, completed: false },
           ]
         },
         {
@@ -272,8 +273,9 @@ const RegisterForm: React.FC = () => {
           unlocked: false,
           completed: false,
           concepts: [
-            { id: 7, name: 'Áreas y perímetros', progress: 0, unlocked: false, completed: false },
-            { id: 8, name: 'Volúmenes', progress: 0, unlocked: false, completed: false },
+            { id: 9, name: 'Áreas y perímetros', progress: 0, unlocked: false, completed: false },
+            { id: 10, name: 'Volúmenes', progress: 0, unlocked: false, completed: false },
+            { id: 11, name: 'Examen Integrado', progress: 0, unlocked: false, completed: false },
           ]
         }];
 
@@ -293,25 +295,24 @@ const RegisterForm: React.FC = () => {
         setIsProcessing(false);
 
       }
-    } catch (error) {
-      console.error('Error durante el registro:', error);
-
-
-
-      showError(errorMessage);
+    } catch (error: any) {
+      console.log(error)
+      let errorMessage = ''
+      if (error.code === 'auth/email-already-in-use') {
+      errorMessage = "Este correo electronico ya existe.";
+    }
+    showError(errorMessage);
     }
   };
 
 
-
-
-  const isFormValid = 
-  email.trim() !== '' && 
-  password.trim() !== '' && 
-  firstname.trim() !== '' && 
-  secondname.trim() !== '' &&
-  !emailError &&
-  !passwordError;
+  const isFormValid =
+    email.trim() !== '' &&
+    password.trim() !== '' &&
+    firstname.trim() !== '' &&
+    secondname.trim() !== '' &&
+    !emailError &&
+    !passwordError;
 
 
   if (!fontsLoaded || !db) {
@@ -320,8 +321,20 @@ const RegisterForm: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.content}>
+        <LottieView
+          source={animation}
+          autoPlay
+          loop
+          style={styles.animation}
+          colorFilters={[
+            {
+              keypath: "bg",
+              color: "transparent"
+            }
+          ]}
+        />
       <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>Registro de Usuario</Text>
-
       <Animated.View
         style={[
           styles.processingNotification,
@@ -411,13 +424,14 @@ const RegisterForm: React.FC = () => {
           )
           : null}
 
-
+      <View style={styles.formContainer}>
       <TextInput
         style={[styles.input, { fontFamily: 'Din-Round' }]}
         placeholder="Nombre"
         placeholderTextColor="#7D7D7D"
         value={firstname}
         onChangeText={handleFirstnameChange}
+        autoCapitalize="none"
       />
       <TextInput
         style={[styles.input, { fontFamily: 'Din-Round' }]}
@@ -425,6 +439,7 @@ const RegisterForm: React.FC = () => {
         placeholderTextColor="#7D7D7D"
         value={secondname}
         onChangeText={handleSecondnameChange}
+        autoCapitalize="none"
       />
       <TextInput
         style={[styles.input, { fontFamily: 'Din-Round' }]}
@@ -432,6 +447,7 @@ const RegisterForm: React.FC = () => {
         placeholderTextColor="#7D7D7D"
         value={email}
         onChangeText={handleEmailChange}
+        autoCapitalize="none"
       />
       {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
       <TextInput
@@ -441,21 +457,24 @@ const RegisterForm: React.FC = () => {
         secureTextEntry
         value={password}
         onChangeText={handlePasswordChange}
+        autoCapitalize="none"
       />
       {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
       <TouchableOpacity
         style={[
-          styles.button,
+          styles.primaryButton,
           !isFormValid && styles.disabledButton
         ]}
         onPress={handleRegister}
         activeOpacity={0.8}
-        disabled={!isFormValid || isProcessing} // Deshabilitar también durante el procesamiento
+        disabled={!isFormValid || isProcessing}
       >
-        <Text style={[styles.buttonText, { fontFamily: 'Din-Round' }]}>
+        <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>
           REGISTRARSE
         </Text>
       </TouchableOpacity>
+      </View>
+      </View>
     </View>
   );
 };
@@ -463,51 +482,72 @@ const RegisterForm: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center',
     backgroundColor: '#222831'
   },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#EEEEEE', // Changed to light text
+    color: '#EEEEEE',
+    marginBottom: 20
+  },
+  formContainer: {
+    width: '100%',
+    alignItems: 'center'
   },
   input: {
     width: '100%',
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#00ADB5', // Accent color border
-    backgroundColor: '#393E46', // Darker background for inputs
+    height: 55,
+    borderWidth: 2,
+    borderColor: '#00ADB5',
+    backgroundColor: '#393E46',
     borderRadius: 10,
-    paddingHorizontal: 15,
+    padding: 15,
     marginBottom: 15,
     fontSize: 16,
-    color: '#EEEEEE', // Light text color
+    color: '#EEEEEE',
   },
-  button: {
-    backgroundColor: '#00ADB5', // Accent color
+  primaryButton: {
+    backgroundColor: '#00ADB5',
     paddingVertical: 15,
+    paddingHorizontal: 30,
     borderRadius: 10,
+    width: '100%',
     alignItems: 'center',
     marginTop: 10,
   },
-  buttonText: {
-    color: '#EEEEEE', // Light text 
+  primaryButtonText: {
+    color: '#EEEEEE',
     fontSize: 18,
     fontWeight: 'bold'
   },
-  messageText: {
-    textAlign: 'center',
-    marginBottom: 15,
-    color: '#FF616D', // Error red from previous theme
-    fontSize: 16,
-  },
   errorText: {
-    color: '#FF616D', // Matching error color
-    marginBottom: 10,
-    fontSize: 14,
+    color: '#FF616D',
+    alignSelf: 'flex-start',
+    marginLeft: 15,
+    marginBottom: 15,
+    fontFamily: 'Din-Round',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
+    top: 15,
+    zIndex: 2,
+  },
+  passwordContainer: {
+    width: '100%',
+    position: 'relative',
+    marginBottom: 5,
+  },
+  animation: {
+    width: 230,
+    height: 230,
+    marginBottom: 20,
   },
   notification: {
     position: 'absolute',
@@ -558,6 +598,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Din-Round',
     fontSize: 16,
   },
+
   disabledButton: {
     backgroundColor: '#393E46',
     opacity: 0.7,

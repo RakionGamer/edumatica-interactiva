@@ -11,9 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { ActivityIndicator, View } from 'react-native';
 import { ProgressProvider } from './components/contexts/ProgressContext';
-
 const Stack = createNativeStackNavigator();
-
 export default function App() {
   const [fontsLoaded] = useFonts({
     'Din-Round': require('./assets/dinroundpro_bold.otf'),
@@ -37,8 +35,6 @@ export default function App() {
             initialRouteName="Principal"
             screenOptions={{
               presentation: 'transparentModal',
-              animation: 'fade'
-
             }}
           >
             <Stack.Screen
@@ -86,7 +82,6 @@ export default function App() {
               component={LoginForm}
               options={{
                 title: 'Ingresa tus datos',
-                headerBackTitle: 'Volver',
                 headerTitleAlign: 'center',
                 headerStyle: {
                   backgroundColor: '#222831',
@@ -96,7 +91,6 @@ export default function App() {
                   fontFamily: 'Din-Round',
                   color: '#EEEEEE',
                 },
-
               }}
             />
           </Stack.Navigator>

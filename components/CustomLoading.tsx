@@ -1,6 +1,5 @@
 import { ActivityIndicator, View, Text } from 'react-native';
 
-
 const CustomLoading = () => (
     <View style={{ 
       flex: 1, 
