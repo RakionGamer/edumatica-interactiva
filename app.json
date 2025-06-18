@@ -41,7 +41,11 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rakionlele.myexpoapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -52,7 +56,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "49f8270e-2e82-4a92-9290-547d43e40338"
+        "projectId": "43e1c3a0-6de5-4fcc-b8f1-9706ede7c976"
       }
     }
   }

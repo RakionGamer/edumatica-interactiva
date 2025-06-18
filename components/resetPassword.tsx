@@ -11,33 +11,29 @@ import {
 } from 'react-native';
 import { useFonts } from 'expo-font';
 import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
-import animation from '../assets/login_animated.json';
+import animation from '../assets/recover_password.json';
 import { Ionicons } from '@expo/vector-icons';
 import NetInfo from '@react-native-community/netinfo';
 import { auth, db } from './db/db';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { getDoc, doc } from 'firebase/firestore';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { collection, getDocs, where, query } from 'firebase/firestore';
 
-const LoginForm: React.FC = () => {
+const RecoveryPassword: React.FC = () => {
   const navigation = useNavigation();
   const [fontsLoaded] = useFonts({
     'Din-Round': require('../assets/dinroundpro_bold.otf'),
   });
-  const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
   const [emailError, setEmailError] = useState<string>('');
-  const [passwordError, setPasswordError] = useState<string>('');
-  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const processingAnim = useRef(new Animated.Value(-100)).current;
-
   const notificationAnim = useRef(new Animated.Value(-100)).current;
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+
+
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -67,7 +63,6 @@ const LoginForm: React.FC = () => {
     return () => anim.stop();
   }, [isProcessing]);
 
-
   useEffect(() => {
     if (errorMessage) {
       Animated.timing(notificationAnim, {
@@ -87,34 +82,11 @@ const LoginForm: React.FC = () => {
   }, [errorMessage]);
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsConnected(state.isConnected);
-    });
-
-    NetInfo.fetch().then(state => {
-      setIsConnected(state.isConnected);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (isConnected === false) {
-      showError('No hay conexión a internet');
-    }
-  }, [isConnected]);
-
-
-
-
-  useEffect(() => {
     return () => {
       notificationAnim.stopAnimation();
       processingAnim.stopAnimation();
     };
   }, []);
-
-
 
   const validateEmail = (text: string): void => {
     setEmailError(
@@ -126,31 +98,10 @@ const LoginForm: React.FC = () => {
     );
   };
 
-  const validatePassword = (text: string): void => {
-    setPasswordError(
-      text.trim() === ''
-        ? 'La contraseña es requerida'
-        : text.length < 6
-          ? 'La contraseña debe tener al menos 6 caracteres'
-          : ''
-    );
-  };
-
-  const handleEmailChange = (text: string): void => {
-    setEmail(text);
-    validateEmail(text);
-  };
-
-  const handlePasswordChange = (text: string): void => {
-    setPassword(text);
-    validatePassword(text);
-  };
-
   const showError = (message: string) => {
-    setIsProcessing(false); // Asegurar que primero se desactiva el procesamiento
+    setIsProcessing(false);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    // Reiniciar posición de ambas animaciones
     Animated.parallel([
       Animated.timing(processingAnim, {
         toValue: -100,
@@ -165,7 +116,6 @@ const LoginForm: React.FC = () => {
     ]).start(() => {
       setErrorMessage(message);
 
-      // Animación de entrada para el error
       Animated.timing(notificationAnim, {
         toValue: 0,
         duration: 300,
@@ -174,48 +124,47 @@ const LoginForm: React.FC = () => {
     });
   };
 
-
-
-  const handleLogin = async (): Promise<void> => {
+  const handleSendRecovery = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
     setErrorMessage('');
+
     const currentConnection = await NetInfo.fetch();
     if (!currentConnection.isConnected) {
-      showError("No hay conexión a internet");
+      showError('No hay conexión a internet');
       return;
     }
+
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      if (!userDoc.exists()) {
-        throw new Error("El estudiante no existe en la base de datos");
+      // OPCIÓN 1: Si tienes una colección "users" y el email está en un campo "email"
+      const usersQuery = query(
+        collection(db, 'users'), 
+        where('email', '==', email.toLowerCase())
+      );
+      const querySnapshot = await getDocs(usersQuery);
+      
+      if (querySnapshot.empty) {
+        showError('El correo no está registrado');
+        return;
       }
-      const userData = userDoc.data();
-      await AsyncStorage.setItem('userData', JSON.stringify({
-        uid: user.uid,
-        email: user.email,
-        firstname: userData.firstname,
-        secondname: userData.secondname
-      }));
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Dashboard' as never }],
-      });
+
+      await sendPasswordResetEmail(auth, email);
+      showError('¡Correo enviado! Revisa tu bandeja de entrada');
+      setTimeout(() => navigation.goBack(), 2000);
+
     } catch (error: any) {
-      let errorMessage = "Correo o contraseña incorrectos.";
-      if (error.code === 'auth/too-many-requests') {
-        errorMessage = "Demasiados intentos fallidos. Intente nuevamente más tarde";
-      } else if (error.code === 'auth/user-not-found') {
-        errorMessage = "Correo o contraseña incorrectos.";
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = "Correo o contraseña incorrectos.";
+      console.error(error);
+      let errorMessage = 'Error al enviar el correo. Intente nuevamente.';
+      
+      if (error.code === 'auth/invalid-email') {
+        errorMessage = 'El formato del correo es inválido';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Demasiados intentos. Intente más tarde';
       }
+      
       showError(errorMessage);
     }
   };
-
 
   if (!fontsLoaded) {
     return (
@@ -225,17 +174,7 @@ const LoginForm: React.FC = () => {
     );
   }
 
-  {
-    isConnected === null && (
-      <ActivityIndicator size="large" color="#00ADB5" />
-    )
-  }
-
-  const isFormValid =
-    email.trim() !== '' &&
-    password.trim() !== '' &&
-    !emailError &&
-    !passwordError;
+  const isFormValid = email.trim() !== '' && !emailError;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -245,14 +184,13 @@ const LoginForm: React.FC = () => {
           autoPlay
           loop
           style={styles.animation}
-          colorFilters={[
-            {
-              keypath: "bg",
-              color: "transparent"
-            }
-          ]}
+          colorFilters={[{ keypath: "bg", color: "transparent" }]}
         />
-        <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>Iniciar sesión</Text>
+
+        <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>
+          Recuperar contraseña
+        </Text>
+
         <Animated.View
           style={[
             styles.processingNotification,
@@ -269,7 +207,6 @@ const LoginForm: React.FC = () => {
           <Text style={styles.processingNotificationText}>Procesando solicitud...</Text>
         </Animated.View>
 
-        {/* Notificación de error */}
         {errorMessage ? (
           <Animated.View
             style={[
@@ -283,85 +220,57 @@ const LoginForm: React.FC = () => {
               }
             ]}
           >
-
             <View style={{ position: 'relative' }}>
-              <Ionicons name="close-circle" size={28} color="#f44336" />
-              <Ionicons
-                name="close"
-                size={18}
-                color="white"
-                style={{
-                  position: 'absolute',
-                  top: 5,
-                  left: 5
-                }}
+              <Ionicons 
+                name={errorMessage.includes('¡Correo enviado!') ? "checkmark-circle" : "close-circle"} 
+                size={28} 
+                color={errorMessage.includes('¡Correo enviado!') ? "#4CAF50" : "#f44336"} 
               />
+              {!errorMessage.includes('¡Correo enviado!') && (
+                <Ionicons
+                  name="close"
+                  size={18}
+                  color="white"
+                  style={{
+                    position: 'absolute',
+                    top: 5,
+                    left: 5
+                  }}
+                />
+              )}
             </View>
             <Text style={styles.notificationText}>
-
               {errorMessage}
             </Text>
           </Animated.View>
-
-
         ) : null}
 
         <View style={styles.formContainer}>
-          {/* Campo de Email */}
           <TextInput
             style={[styles.input, { fontFamily: 'Din-Round' }]}
-            placeholder="Correo electrónico"
+            placeholder="Correo electrónico registrado"
             placeholderTextColor="#888"
             value={email}
-            onChangeText={handleEmailChange}
+            onChangeText={(text) => {
+              setEmail(text);
+              validateEmail(text);
+            }}
             keyboardType="email-address"
             autoCapitalize="none"
           />
-          {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+          {emailError && <Text style={styles.errorText}>{emailError}</Text>}
 
-          {/* Campo de Contraseña */}
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={[styles.input, { fontFamily: 'Din-Round' }]}
-              placeholder="Contraseña"
-              placeholderTextColor="#888"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={handlePasswordChange}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
-            >
-              <MaterialCommunityIcons
-                name={showPassword ? 'eye-off' : 'eye'}
-                size={24}
-                color="#7D7D7D"
-              />
-            </TouchableOpacity>
-          </View>
-          {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-
-          {/* Botón de Ingreso */}
           <TouchableOpacity
             style={[
               styles.primaryButton,
-              !isFormValid && styles.disabledButton
+              (!isFormValid || isProcessing) && styles.disabledButton,
             ]}
-            onPress={handleLogin}
-            activeOpacity={0.8}
+            onPress={handleSendRecovery}
             disabled={!isFormValid || isProcessing}
           >
             <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>
-              INGRESAR
+              ENVIAR INSTRUCCIONES
             </Text>
-          </TouchableOpacity>
-                    <TouchableOpacity
-            onPress={() => navigation.navigate('resetPassword' as never)} // Ajusta el nombre de la pantalla
-            style={{ alignSelf: 'center', marginTop: 20 }}
-          >
-            <Text style={{ color: '#00ADB5', fontFamily: 'Din-Round' }}>Recuperar contraseña</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -372,7 +281,7 @@ const LoginForm: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#222831'
+    backgroundColor: '#222831',
   },
   content: {
     flex: 1,
@@ -381,15 +290,21 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 120,
   },
+  backButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    zIndex: 1,
+  },
   title: {
     fontSize: 30,
     fontWeight: 'bold',
     color: '#EEEEEE',
-    marginBottom: 20
+    marginBottom: 20,
   },
   formContainer: {
     width: '100%',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   input: {
     width: '100%',
@@ -415,7 +330,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#EEEEEE',
     fontSize: 18,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   errorText: {
     color: '#FF616D',
@@ -423,17 +338,6 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     marginBottom: 15,
     fontFamily: 'Din-Round',
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 15,
-    top: 15,
-    zIndex: 2,
-  },
-  passwordContainer: {
-    width: '100%',
-    position: 'relative',
-    marginBottom: 5,
   },
   animation: {
     width: 270,
@@ -466,7 +370,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Din-Round',
     fontSize: 17,
   },
-
   processingNotification: {
     position: 'absolute',
     top: 10,
@@ -489,11 +392,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Din-Round',
     fontSize: 16,
   },
-
   disabledButton: {
     backgroundColor: '#393E46',
     opacity: 0.7,
-  }
+  },
 });
 
-export default LoginForm;
+export default RecoveryPassword;

@@ -4,61 +4,14 @@ import { useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 import animation from '../assets/index.json';
 import EducationIcon from '../assets/education-cap-svgrepo-com.svg';
-import { useFocusEffect } from '@react-navigation/native';
 import { Animated } from 'react-native';
 
 const Principal = () => {
   const navigation = useNavigation();
-  const fadeAnim = new Animated.Value(0);
-  const headerY = new Animated.Value(0);
-  const contentY = new Animated.Value(0);
-  const buttonsY = new Animated.Value(0);
-  
-  const animateElements = () => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(headerY, {
-        toValue: 0,
-        duration: 600,
-        delay: 10,
-        useNativeDriver: true,
-      }),
-      
-      Animated.timing(contentY, {
-        toValue: 0,
-        duration: 600,
-        delay: 10,
-        useNativeDriver: true,
-      }),
-      
-      Animated.timing(buttonsY, {
-        toValue: 0,
-        duration: 550,
-        delay: 10,
-        useNativeDriver: true,
-      })
-    ]).start();
-  };
-
-  useFocusEffect(() => {
-    fadeAnim.setValue(0);
-    headerY.setValue(-15);
-    contentY.setValue(-20);
-    buttonsY.setValue(20);
-    animateElements();
-  });
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Header con animación */}
         <Animated.View style={[styles.headerFlex, {
-          opacity: fadeAnim,
-          transform: [{ translateY: headerY }]
         }]}>
           <EducationIcon
             width={45} 
@@ -69,10 +22,7 @@ const Principal = () => {
             Edúmatica Interactiva
           </Text>
         </Animated.View>
-
         <Animated.View style={{
-          opacity: fadeAnim,
-          transform: [{ translateY: contentY }]
         }}>
           <LottieView
             source={animation}
@@ -81,19 +31,13 @@ const Principal = () => {
             style={[styles.animation, { backgroundColor: 'transparent' }]}
           />
         </Animated.View>
-
         <Animated.View style={[styles.textContainer, {
-          opacity: fadeAnim,
-          transform: [{ translateY: contentY }]
         }]}>
           <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>
             La forma divertida, efectiva y gratis de aprender matemáticas!
           </Text>
         </Animated.View>
-
         <Animated.View style={[styles.buttonsContainer, {
-          opacity: fadeAnim,
-          transform: [{ translateY: buttonsY }]
         }]}>
           <TouchableOpacity
             style={styles.primaryButton}
@@ -127,7 +71,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,                  
-    paddingHorizontal: 22,    // Padding lateral para evitar bordes pegados
+    paddingHorizontal: 22, 
   },
   titleHeader: {
     fontSize: 25,

@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Animated
+  Animated,
+  ScrollView
 } from 'react-native';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,15 +18,10 @@ import { collection, doc, writeBatch } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import NetInfo from '@react-native-community/netinfo';
 
-
-
-
 const RegisterForm: React.FC = () => {
   const [fontsLoaded] = useFonts({
     'Din-Round': require('../assets/dinroundpro_bold.otf'),
   });
-
-
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [firstname, setFirstname] = useState<string>('');
@@ -66,11 +62,9 @@ const RegisterForm: React.FC = () => {
         useNativeDriver: true,
       });
     }
-
     anim.start();
-    return () => anim.stop(); // Detener animación si el componente se desmonta
+    return () => anim.stop();
   }, [isProcessing]);
-
 
   useEffect(() => {
     if (errorMessage) {
@@ -214,7 +208,6 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
-
     if (!email.trim() || !password.trim() || !firstname.trim() || !secondname.trim()) {
       setMessage('Todos los campos son obligatorios.');
       return;
@@ -226,7 +219,6 @@ const RegisterForm: React.FC = () => {
     }
 
     try {
-      // 1. Crear usuario en Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       if (user) {
@@ -287,7 +279,7 @@ const RegisterForm: React.FC = () => {
         await batch.commit();
 
 
-        showSuccess('Usuario registrado exitosamente.');
+        showSuccess('Estudiante registrado exitosamente.');
         setEmail('');
         setPassword('');
         setFirstname('');
@@ -299,12 +291,11 @@ const RegisterForm: React.FC = () => {
       console.log(error)
       let errorMessage = ''
       if (error.code === 'auth/email-already-in-use') {
-      errorMessage = "Este correo electronico ya existe.";
-    }
-    showError(errorMessage);
+        errorMessage = "Este correo electronico ya existe.";
+      }
+      showError(errorMessage);
     }
   };
-
 
   const isFormValid =
     email.trim() !== '' &&
@@ -318,9 +309,13 @@ const RegisterForm: React.FC = () => {
   if (!fontsLoaded || !db) {
     return <ActivityIndicator size="large" color="#0000ff" />;
   }
-
   return (
     <View style={styles.container}>
+      <ScrollView 
+  contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+  keyboardShouldPersistTaps="handled"
+>
+      
       <View style={styles.content}>
         <LottieView
           source={animation}
@@ -334,147 +329,144 @@ const RegisterForm: React.FC = () => {
             }
           ]}
         />
-      <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>Registro de Usuario</Text>
-      <Animated.View
-        style={[
-          styles.processingNotification,
-          {
-            transform: [{ translateY: processingAnim }],
-            opacity: processingAnim.interpolate({
-              inputRange: [-100, 0],
-              outputRange: [0, 1],
-            }),
-          },
-        ]}
-      >
-        <ActivityIndicator size="small" color="#00ADB5" />
-        <Text style={styles.processingNotificationText}>Procesando solicitud...</Text>
-      </Animated.View>
+        <Text style={[styles.title, { fontFamily: 'Din-Round' }]}>Registro del Estudiante</Text>
+        <Animated.View
+          style={[
+            styles.processingNotification,
+            {
+              transform: [{ translateY: processingAnim }],
+              opacity: processingAnim.interpolate({
+                inputRange: [-100, 0],
+                outputRange: [0, 1],
+              }),
+            },
+          ]}
+        >
+          <ActivityIndicator size="small" color="#00ADB5" />
+          <Text style={styles.processingNotificationText}>Procesando solicitud...</Text>
+        </Animated.View>
+        {errorMessage ?
+            (
+              <Animated.View
+                style={[
+                  styles.notification,
+                  {
+                    transform: [{ translateY: notificationAnim }],
+                    opacity: notificationAnim.interpolate({
+                      inputRange: [-100, 0],
+                      outputRange: [0, 1]
+                    })
+                  }
+                ]}
+              >
+                <View style={{ position: 'relative' }}>
+                  <Ionicons name="close-circle" size={28} color="#f44336" />
+                  <Ionicons
+                    name="close"
+                    size={18}
+                    color="white"
+                    style={{
+                      position: 'absolute',
+                      top: 5,
+                      left: 5
+                    }}
+                  />
+                </View>
+                <Text style={styles.notificationText}>
 
+                  {errorMessage}
+                </Text>
+              </Animated.View>
+            )
+            : null
+        }
+        {
+          sucessMessage ?
+            (
+              <Animated.View
+                style={[
+                  styles.notification,
+                  {
+                    transform: [{ translateY: notificationAnim }],
+                    opacity: notificationAnim.interpolate({
+                      inputRange: [-100, 0],
+                      outputRange: [0, 1]
+                    })
+                  }
+                ]}
+              >
+                <View style={{ position: 'relative' }}>
+                  <Ionicons name="checkmark-circle" size={28} color="#0bc904" />
+                  <Ionicons
+                    name="checkmark"
+                    size={18}
+                    color="white"
+                    style={{
+                      position: 'absolute',
+                      top: 5,
+                      left: 5
+                    }}
+                  />
+                </View>
+                <Text style={styles.notificationText}>
+                  {sucessMessage}
+                </Text>
+              </Animated.View>
+            )
+            : null}
 
-      {
-        errorMessage ?
-          (
-            <Animated.View
-              style={[
-                styles.notification,
-                {
-                  transform: [{ translateY: notificationAnim }],
-                  opacity: notificationAnim.interpolate({
-                    inputRange: [-100, 0],
-                    outputRange: [0, 1]
-                  })
-                }
-              ]}
-            >
-
-              <View style={{ position: 'relative' }}>
-                <Ionicons name="close-circle" size={28} color="#f44336" />
-                <Ionicons
-                  name="close"
-                  size={18}
-                  color="white"
-                  style={{
-                    position: 'absolute',
-                    top: 5,
-                    left: 5
-                  }}
-                />
-              </View>
-              <Text style={styles.notificationText}>
-
-                {errorMessage}
-              </Text>
-            </Animated.View>
-          )
-          : null
-      }
-      {
-        sucessMessage ?
-          (
-            <Animated.View
-              style={[
-                styles.notification,
-                {
-                  transform: [{ translateY: notificationAnim }],
-                  opacity: notificationAnim.interpolate({
-                    inputRange: [-100, 0],
-                    outputRange: [0, 1]
-                  })
-                }
-              ]}
-            >
-              <View style={{ position: 'relative' }}>
-                <Ionicons name="checkmark-circle" size={28} color="#0bc904" />
-                <Ionicons
-                  name="checkmark"
-                  size={18}
-                  color="white"
-                  style={{
-                    position: 'absolute',
-                    top: 5,
-                    left: 5
-                  }}
-                />
-              </View>
-              <Text style={styles.notificationText}>
-                {sucessMessage}
-              </Text>
-            </Animated.View>
-          )
-          : null}
-
-      <View style={styles.formContainer}>
-      <TextInput
-        style={[styles.input, { fontFamily: 'Din-Round' }]}
-        placeholder="Nombre"
-        placeholderTextColor="#7D7D7D"
-        value={firstname}
-        onChangeText={handleFirstnameChange}
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={[styles.input, { fontFamily: 'Din-Round' }]}
-        placeholder="Apellido"
-        placeholderTextColor="#7D7D7D"
-        value={secondname}
-        onChangeText={handleSecondnameChange}
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={[styles.input, { fontFamily: 'Din-Round' }]}
-        placeholder="Correo electrónico"
-        placeholderTextColor="#7D7D7D"
-        value={email}
-        onChangeText={handleEmailChange}
-        autoCapitalize="none"
-      />
-      {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-      <TextInput
-        style={[styles.input, { fontFamily: 'Din-Round' }]}
-        placeholder="Contraseña"
-        placeholderTextColor="#7D7D7D"
-        secureTextEntry
-        value={password}
-        onChangeText={handlePasswordChange}
-        autoCapitalize="none"
-      />
-      {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-      <TouchableOpacity
-        style={[
-          styles.primaryButton,
-          !isFormValid && styles.disabledButton
-        ]}
-        onPress={handleRegister}
-        activeOpacity={0.8}
-        disabled={!isFormValid || isProcessing}
-      >
-        <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>
-          REGISTRARSE
-        </Text>
-      </TouchableOpacity>
+        <View style={styles.formContainer}>
+          <TextInput
+            style={[styles.input, { fontFamily: 'Din-Round' }]}
+            placeholder="Nombre"
+            placeholderTextColor="#7D7D7D"
+            value={firstname}
+            onChangeText={handleFirstnameChange}
+            autoCapitalize="none"
+          />
+          <TextInput
+            style={[styles.input, { fontFamily: 'Din-Round' }]}
+            placeholder="Apellido"
+            placeholderTextColor="#7D7D7D"
+            value={secondname}
+            onChangeText={handleSecondnameChange}
+            autoCapitalize="none"
+          />
+          <TextInput
+            style={[styles.input, { fontFamily: 'Din-Round' }]}
+            placeholder="Correo electrónico"
+            placeholderTextColor="#7D7D7D"
+            value={email}
+            onChangeText={handleEmailChange}
+            autoCapitalize="none"
+          />
+          {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+          <TextInput
+            style={[styles.input, { fontFamily: 'Din-Round' }]}
+            placeholder="Contraseña"
+            placeholderTextColor="#7D7D7D"
+            secureTextEntry
+            value={password}
+            onChangeText={handlePasswordChange}
+            autoCapitalize="none"
+          />
+          {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              !isFormValid && styles.disabledButton
+            ]}
+            onPress={handleRegister}
+            activeOpacity={0.8}
+            disabled={!isFormValid || isProcessing}
+          >
+            <Text style={[styles.primaryButtonText, { fontFamily: 'Din-Round' }]}>
+              REGISTRARSE
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -520,6 +512,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginTop: 10,
+    
   },
   primaryButtonText: {
     color: '#EEEEEE',

@@ -1,4 +1,3 @@
-// ProgressContext.tsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { auth, db } from '../db/db';
 import { collection, doc, onSnapshot, writeBatch, getDocs } from 'firebase/firestore';
@@ -27,6 +26,8 @@ type ProgressContextType = {
   toggleModuleExpansion: (id: number) => void;
   expandedModule: number | null;
   refreshProgress: () => Promise<void>;
+  getConceptProgress: (conceptId: number) => number | null; // Nueva función
+  
 };
 
 const ProgressContext = createContext<ProgressContextType>({} as ProgressContextType);
@@ -49,29 +50,33 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => authUnsubscribe();
   }, []);
 
+
+
+  const getConceptProgress = useCallback((conceptId: number): number | null => {
+  for (const module of modules) {
+    const concept = module.concepts.find(c => c.id === conceptId);
+    if (concept) return concept.progress;
+  }
+  return null;
+}, [modules]);
+
   useEffect(() => {
     if (firestoreUnsubscribeRef.current) {
       firestoreUnsubscribeRef.current();
       firestoreUnsubscribeRef.current = null;
     }
-
     const loadProgress = async () => {
       if (!currentUser?.uid) {
         setLoading(false);
         return;
       }
-
       setLoading(true);
-      
       try {
         await AsyncStorage.setItem('userData', JSON.stringify({
           uid: currentUser.uid,
           email: currentUser.email
         }));
-
-
         const modulesRef = collection(db, 'users', currentUser.uid, 'modules');
-
         const unsubscribe = onSnapshot(modulesRef, (snapshot) => {
           const modulesData: Module[] = [];
           snapshot.forEach((doc) => {
@@ -96,9 +101,12 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     loadProgress();
 
+
+    
+
     return () => {
     if (firestoreUnsubscribeRef.current) {
-      firestoreUnsubscribeRef.current(); // 
+      firestoreUnsubscribeRef.current(); 
     }
   };
   }, [currentUser?.uid]);
@@ -124,7 +132,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const updatedConcepts = [...module.concepts];
     
     const concept = updatedConcepts[conceptIndex];
-    const newProgress = Math.min(concept.progress + amount, 100);
+    const newProgress = Math.max(0, Math.min(concept.progress + amount, 100));
     const completed = newProgress === 100;
     
     updatedConcepts[conceptIndex] = {
@@ -195,6 +203,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     updateConceptProgress,
     toggleModuleExpansion,
     expandedModule,
+    getConceptProgress,
     refreshProgress
   };
 

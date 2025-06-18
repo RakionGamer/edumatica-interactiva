@@ -21,14 +21,14 @@ interface Guide {
 }
 
 const GUIDES: { [key: number]: Guide } = {
-  1: {
+ 1: {
     title: 'Suma',
     content: {
       definition: 'Es la operación matemática básica que representa la combinación de cantidades.',
       steps: [
-        'Alinea los números por su valor posicional',
-        'Suma comenzando por la derecha (unidades)',
-        'Lleva los acarreos si la suma excede 9'
+        'Coloca los números uno debajo del otro.',
+        'Empieza sumando desde la derecha (las unidades).',
+        'Si el resultado pasa de 9, suma el número extra al siguiente.'
       ],
       example: {
         problem: '23 + 15',
@@ -41,9 +41,9 @@ const GUIDES: { [key: number]: Guide } = {
     content: {
       definition: 'Es la operación inversa a la suma que representa la sustracción de cantidades.',
       steps: [
-        'Alinea los números correctamente',
-        'Resta comenzando por la derecha',
-        'Toma prestado si el dígito es menor'
+        'Escribe los números alineados según su posición.',
+        'Comienza a restar desde la derecha.',
+        'Si el número de arriba es menor, pide prestado al número de al lado.'
       ],
       example: {
         problem: '35 - 12',
@@ -54,11 +54,11 @@ const GUIDES: { [key: number]: Guide } = {
   3: {
     title: 'Multiplicación',
     content: {
-      definition: 'Se suma la cantidad de veces, ejemplo: 2 + 2 + 2 + 2 = 8.',
+      definition: 'Se suma una cantidad varias veces. Ejemplo: 2 + 2 + 2 + 2 = 8.',
       steps: [
-        'Alinea los números correctamente',
-        'Resta comenzando por la derecha',
-        'Toma prestado si el dígito es menor'
+        'Coloca los números uno debajo del otro.',
+        'Multiplica cada número, empezando por el de la derecha.',
+        'Si hay más de una cifra, suma los resultados al final.'
       ],
       example: {
         problem: '2 * 2',
@@ -71,9 +71,9 @@ const GUIDES: { [key: number]: Guide } = {
     content: {
       definition: 'Operación para repartir una cantidad en partes iguales.',
       steps: [
-        'Identifica dividendo y divisor',
-        'Realiza la división paso a paso',
-        'Verifica el resultado con multiplicación'
+        'Mira cuántas veces cabe el número de afuera en el de adentro.',
+        'Divide paso a paso, empezando por el primer número.',
+        'Comprueba el resultado multiplicando.'
       ],
       example: {
         problem: '144 ÷ 12',
@@ -82,13 +82,13 @@ const GUIDES: { [key: number]: Guide } = {
     }
   },
   5: {
-    title: 'Examen Integrado de Operaciones',
+    title: 'Examen de Operaciones',
     content: {
       definition: 'Evaluación combinada de suma, resta, multiplicación y división.',
       steps: [
-        'Resuelve en el orden correcto (PEMDAS)',
-        'Verifica cada operación',
-        'Maneja cuidadosamente los decimales'
+        'Sigue el orden correcto: primero multiplicas o divides, luego sumas o restas.',
+        'Haz una operación a la vez, con calma.',
+        'Revisa tu respuesta al final para asegurarte que todo está bien.'
       ],
       example: {
         problem: '(15 × 3) + (20 ÷ 4) - 7',
@@ -103,9 +103,9 @@ const GUIDES: { [key: number]: Guide } = {
     content: {
       definition: 'Igualdad algebraica con variables de primer grado.',
       steps: [
-        'Aísla la variable en un lado',
-        'Realiza operaciones inversas',
-        'Verifica la solución sustituyendo'
+        'Pasa la letra (variable) a un lado y los números al otro.',
+        'Haz las operaciones contrarias para dejar sola la letra.',
+        'Sustituye el valor hallado en la ecuación para comprobar que es correcto.'
       ],
       example: {
         problem: '2x + 5 = 15',
@@ -118,9 +118,9 @@ const GUIDES: { [key: number]: Guide } = {
     content: {
       definition: 'Proceso de descomposición en factores algebraicos.',
       steps: [
-        'Identifica el máximo común divisor',
-        'Aplica fórmulas notables',
-        'Verifica multiplicando los factores'
+        'Busca un número o letra que se repita en todos los términos.',
+        'Aplica fórmulas conocidas como trinomio o diferencia de cuadrados.',
+        'Multiplica los factores para ver si el resultado es igual al original.'
       ],
       example: {
         problem: 'x² + 5x + 6',
@@ -129,17 +129,17 @@ const GUIDES: { [key: number]: Guide } = {
     }
   },
   8: {
-    title: 'Examen Integrado de Álgebra',
+    title: 'Examen de Álgebra',
     content: {
       definition: 'Evaluación combinada de ecuaciones y factorización.',
       steps: [
-        'Resuelve ecuaciones paso a paso',
-        'Factoriza expresiones complejas',
-        'Simplifica resultados'
+        'Resuelve las ecuaciones paso a paso sin saltarte nada.',
+        'Descompón las expresiones grandes usando factorización.',
+        'Revisa que todo esté bien simplificado y claro.'
       ],
       example: {
-        problem: 'Resolver y factorizar: x² - 4x = 12',
-        solution: 'x = 6, -2\nFactores: (x - 6)(x + 2)'
+        problem: 'Resolver y factorizar:   x² - 4x = 12',
+        solution: 'Factores: (x - 6)(x + 2)\nx = 6, -2'
       }
     }
   },
@@ -150,9 +150,9 @@ const GUIDES: { [key: number]: Guide } = {
     content: {
       definition: 'Cálculo de medidas en figuras bidimensionales.',
       steps: [
-        'Identifica la figura geométrica',
-        'Aplica fórmulas específicas',
-        'Convierte unidades si es necesario'
+        'Primero, mira bien qué figura es (cuadrado, triángulo, círculo, etc.).',
+        'Usa la fórmula que corresponde a esa figura.',
+        'Si las medidas están en diferentes unidades, conviértelas para que sean iguales.'
       ],
       example: {
         problem: 'Triángulo base 8m, altura 5m',
@@ -165,9 +165,9 @@ const GUIDES: { [key: number]: Guide } = {
     content: {
       definition: 'Cálculo de espacio en figuras tridimensionales.',
       steps: [
-        'Identifica el cuerpo geométrico',
-        'Aplica fórmula de volumen',
-        'Maneja unidades cúbicas'
+        'Observa qué tipo de figura es (cubo, cilindro, prisma, etc.).',
+        'Aplica la fórmula del volumen para ese cuerpo.',
+        'Asegúrate de usar unidades cúbicas, como metros cúbicos (m³).'
       ],
       example: {
         problem: 'Cubo de 3m de arista',
@@ -176,13 +176,13 @@ const GUIDES: { [key: number]: Guide } = {
     }
   },
   11: {
-    title: 'Examen Integrado de Geometría',
+    title: 'Examen de Geometría',
     content: {
       definition: 'Evaluación combinada de áreas y volúmenes.',
       steps: [
-        'Diferencia entre 2D y 3D',
-        'Aplica fórmulas correctamente',
-        'Verifica cálculos intermedios'
+        'Fíjate si la figura es plana (2D) o tiene volumen (3D).',
+        'Elige y usa la fórmula que corresponde a cada tipo.',
+        'Revisa los cálculos poco a poco para no equivocarte.'
       ],
       example: {
         problem: 'Prisma rectangular: 4m × 3m × 2m',
@@ -217,7 +217,7 @@ const ConceptGuide = () => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity 
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate('Dashboard' as never)}
             style={styles.backButton}
           >
             <Ionicons name="arrow-back" size={28} color="#fff" />

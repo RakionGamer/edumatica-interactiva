@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert, ActivityIndicator, Pressable } from 'react-native';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -8,8 +8,10 @@ import { Bar } from 'react-native-progress';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProgress } from './contexts/ProgressContext';
 import RotatableIcon from './rotateChevronIcon'
-import { auth } from './db/db';
-import ShimmerEffect from './contexts/ShimmerEffect';
+import { auth, db } from './db/db';
+import { doc, getDoc } from 'firebase/firestore';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialIcons } from '@expo/vector-icons';
 
 type RootStackParamList = {
     Principal: undefined;
@@ -21,9 +23,9 @@ const Dashboard: React.FC = () => {
     const [fontsLoaded] = useFonts({
         'Din-Round': require('../assets/dinroundpro_bold.otf'),
     });
-
     const [user, setUser] = useState<{ firstname: string; secondname: string } | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showDropdown, setShowDropdown] = useState(false);
 
     const {
         modules,
@@ -37,46 +39,146 @@ const Dashboard: React.FC = () => {
         const loadUserData = async () => {
             try {
                 const data = await AsyncStorage.getItem('userData');
-                console.log('Data: ', data);
-                if (data) setUser(JSON.parse(data));
+                if (data) {
+                    const localUserData = JSON.parse(data);
+
+                    if (auth.currentUser) {
+                        const docRef = doc(db, 'users', auth.currentUser.uid);
+                        const docSnap = await getDoc(docRef);
+
+                        if (docSnap.exists()) {
+                            const firestoreData = docSnap.data();
+
+                            if (firestoreData.firstname !== localUserData.firstname ||
+                                firestoreData.secondname !== localUserData.secondname) {
+
+                                const updatedUser = {
+                                    ...localUserData,
+                                    ...firestoreData
+                                };
+
+                                await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+                                setUser(updatedUser);
+                                return;
+                            }
+                        }
+                    }
+                    setUser(localUserData);
+                }
             } catch (error) {
-                Alert.alert('Error', 'No se pudieron cargar los datos del usuario');
+                Alert.alert('Error', 'Error cargando datos del usuario');
             } finally {
                 setLoading(false);
             }
         };
+
         loadUserData();
-    }, []);
+
+        const unsubscribeFocus = navigation.addListener('focus', loadUserData);
+
+        return () => {
+            unsubscribeFocus();
+        };
+    }, [navigation]);
 
     const handleLogout = async () => {
-        await auth.signOut();
-        await AsyncStorage.removeItem('userData');
-        navigation.navigate('Principal')
+        try {
+            await auth.signOut();
+            await AsyncStorage.removeItem('userData');
+            navigation.navigate('Principal');
+        } catch (error) {
+            console.error('Error al cerrar sesión:', error);
+            Alert.alert('Error', 'No se pudo cerrar sesión');
+        }
     };
 
-    if (!fontsLoaded || loading) {
+    if (!fontsLoaded || loading || progressLoading) {
         return (
             <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#00ADB5" />
-                <Text style={styles.loadingText}>Cargando..</Text>
+                <ActivityIndicator
+                    size="large"
+                    color="#00ADB5"
+                    style={{ transform: [{ scale: 1.4 }] }}
+                />
+                <Text style={styles.loadingText}>
+                    Cargando..
+                </Text>
             </View>
         );
     }
 
+    const ModuleIcon = ({ title }: { title: string }) => {
+        const iconProps = {
+            size: 32,
+            color: "#fff",
+            style: styles.moduleIcon
+        };
+
+        switch (title) {
+            case 'Números y Operaciones':
+                return <MaterialIcons name="calculate" {...iconProps} />;
+            case 'Álgebra':
+                return <MaterialCommunityIcons name="matrix" {...iconProps} />;
+            case 'Geometría':
+                return <MaterialCommunityIcons name="shape" {...iconProps} />;
+            default:
+                return <Ionicons name="calculator" {...iconProps} />;
+        }
+    };
+
     const ModulesCompleted = modules.filter(mod => mod.completed).length
     return (
         <SafeAreaView style={styles.container}>
+
             <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <View style={styles.welcomeContainer}>
+                <View style={styles.headerContainer}>
                     <Text style={[styles.welcomeTitle, { fontFamily: 'Din-Round' }]}>
                         Bienvenido
                     </Text>
-                    <Text style={[styles.userName, { fontFamily: 'Din-Round' }]}>
-                        {user?.firstname} {user?.secondname}
-                    </Text>
-                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                        <Ionicons name="log-out-outline" size={28} color="#fff" />
+
+                    <TouchableOpacity
+                        style={styles.profileContainer}
+                        onPress={() => setShowDropdown(!showDropdown)}
+                    >
+                        <View style={styles.profileContent}>
+                            <Ionicons
+                                name="person-circle-outline"
+                                size={32}
+                                color="#00ADB5"
+                            />
+                            <View style={styles.profileTextContainer}>
+                                <Text style={styles.userName}>
+                                    {user?.firstname} {user?.secondname}
+                                </Text>
+                            </View>
+                        </View>
                     </TouchableOpacity>
+                    {showDropdown && (
+                        <Animated.View
+                            style={styles.dropdownMenu}
+                            entering={FadeInUp.duration(200)}
+                        >
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={() => {
+                                    setShowDropdown(false);
+                                    navigation.navigate('EditProfile' as never);
+                                }}
+                            >
+                                <Ionicons name="create-outline" size={20} color="#EEEEEE" />
+                                <Text style={styles.menuItemText}>Editar Perfil</Text>
+                            </TouchableOpacity>
+
+                            <View style={styles.divider} />
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={handleLogout}
+                            >
+                                <Ionicons name="log-out-outline" size={20} color="#EEEEEE" />
+                                <Text style={styles.menuItemText}>Cerrar Sesión</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    )}
                 </View>
 
                 <Text style={[styles.progressTitle, { fontFamily: 'Din-Round' }]}>
@@ -95,7 +197,6 @@ const Dashboard: React.FC = () => {
                                         name={mod.completed ? 'star' : 'star-outline'}
                                         size={24}
                                         color={mod.completed ? '#00ADB5' : '#393E46'}
-
                                     />
                                 </View>
                             ))}
@@ -126,92 +227,69 @@ const Dashboard: React.FC = () => {
                     }
                 </View>
                 {
-                    progressLoading ? (
-                        <View style={styles.modulesContainer}>
-            {[1, 2, 3].map((_, index) => (
-                <View
-                    key={`skeleton-${index}`}
-                    style={styles.skeletonModule}
-                >
-                    {/* Contenido del Skeleton */}
-                    <View style={styles.skeletonContent}>
-                        <View style={styles.skeletonIcon} />
-                        <View style={styles.skeletonTextContainer}>
-                            <View style={styles.skeletonTitle} />
-                            <View style={styles.skeletonDescription} />
-                        </View>
-                        <View style={styles.skeletonArrow} />
-                    </View>
-                    
-                    {/* Efecto Shimmer superpuesto */}
-                    <ShimmerEffect />
-                </View>
-            ))}
-        </View>
-                    ) : (
-                        modules.map(mod => (
-                            <Animated.View key={mod.id} entering={FadeInUp.duration(600)}>
-                                <TouchableOpacity
-                                    style={[styles.moduleCard, mod.unlocked ? styles.unlocked : styles.locked]}
+
+                    modules.map(mod => (
+                        <Animated.View key={mod.id} entering={FadeInUp.duration(600)}>
+                            <TouchableOpacity
+                                style={[styles.moduleCard, mod.unlocked ? styles.unlocked : styles.locked]}
+                                onPress={() => toggleModuleExpansion(mod.id)}
+                            >
+                                <ModuleIcon title={mod.title}/>
+                                <View style={styles.moduleInfo}>
+                                    <Text style={styles.moduleTitle}>{mod.title}</Text>
+                                    <Text style={styles.moduleDesc}>{mod.description}</Text>
+                                </View>
+                                <RotatableIcon
+                                    isExpanded={expandedModule === mod.id}
                                     onPress={() => toggleModuleExpansion(mod.id)}
-                                >
-                                    <Ionicons name="book" size={24} color="#fff" style={styles.moduleIcon} />
-                                    <View style={styles.moduleInfo}>
-                                        <Text style={styles.moduleTitle}>{mod.title}</Text>
-                                        <Text style={styles.moduleDesc}>{mod.description}</Text>
-                                    </View>
-                                    <RotatableIcon
-                                        isExpanded={expandedModule === mod.id}
-                                        onPress={() => toggleModuleExpansion(mod.id)}
-                                        mod={mod}
-                                        disabled={!mod.unlocked}
-                                    />
-                                </TouchableOpacity>
-                                {expandedModule === mod.id && (
-                                    <Animated.View entering={FadeInUp.duration(600)} style={styles.conceptsList}>
-                                        {mod.concepts.map((concept, index) => (
-                                            <View key={concept.id} style={styles.conceptItem}>
-                                                <View style={styles.timelineContainer}>
-                                                    <View style={[styles.timelineDot, concept.unlocked ? styles.unlockedDot : styles.lockedDot]} />
-                                                    {index !== mod.concepts.length - 1 && (
-                                                        <View style={[styles.timelineLine, { backgroundColor: concept.completed ? '#00ADB5' : '#393E46' }]} />
-                                                    )}
-                                                </View>
-
-                                                <TouchableOpacity
-                                                    style={[styles.conceptCard, !concept.unlocked && styles.lockedConcept]}
-                                                    onPress={() => {
-                                                        concept.unlocked ? navigation.navigate('ConceptGuide', { conceptId: concept.id }) : console.log('No se encuentra la guia')
-                                                    }}
-                                                    disabled={!concept.unlocked}
-                                                >
-                                                    <View style={styles.conceptTextContainer}>
-                                                        <Text style={styles.conceptTitle}>{concept.name}</Text>
-                                                        <View style={styles.progressContainer}>
-                                                            <Bar
-                                                                progress={concept.progress / 100}
-                                                                width={null}
-                                                                height={8}
-                                                                color="#00ADB5"
-                                                                borderRadius={4}
-                                                                style={styles.progressBar}
-                                                            />
-                                                            <Text style={styles.percentageText}>
-                                                                {concept.progress}%
-                                                            </Text>
-                                                        </View>
-                                                    </View>
-                                                    {concept.completed && <Ionicons name="checkmark-circle" size={24} color="#00ADB5" />}
-                                                </TouchableOpacity>
+                                    mod={mod}
+                                    disabled={!mod.unlocked}
+                                />
+                            </TouchableOpacity>
+                            {expandedModule === mod.id && (
+                                <Animated.View entering={FadeInUp.duration(600)} style={styles.conceptsList}>
+                                    {mod.concepts.map((concept, index) => (
+                                        <View key={concept.id} style={styles.conceptItem}>
+                                            <View style={styles.timelineContainer}>
+                                                <View style={[styles.timelineDot, concept.unlocked ? styles.unlockedDot : styles.lockedDot]} />
+                                                {index !== mod.concepts.length - 1 && (
+                                                    <View style={[styles.timelineLine, { backgroundColor: concept.completed ? '#00ADB5' : '#393E46' }]} />
+                                                )}
                                             </View>
-                                        ))}
-                                    </Animated.View>
-                                )}
-                            </Animated.View>
-                        ))
+                                            <TouchableOpacity
+                                                style={[styles.conceptCard, !concept.unlocked && styles.lockedConcept]}
+                                                onPress={() => {
+                                                    concept.unlocked ? navigation.navigate('ConceptGuide', { conceptId: concept.id }) : console.log('No se encuentra la guia')
+                                                }}
+                                                disabled={!concept.unlocked}
+                                            >
+                                                <View style={styles.conceptTextContainer}>
+                                                    <Text style={styles.conceptTitle}>{concept.name}</Text>
+                                                    <View style={styles.progressContainer}>
+                                                        <Bar
+                                                            progress={concept.progress / 100}
+                                                            width={null}
+                                                            height={8}
+                                                            color="#00ADB5"
+                                                            borderRadius={4}
+                                                            style={styles.progressBar}
+                                                        />
+                                                        <Text style={styles.percentageText}>
+                                                            {concept.progress}%
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                                {concept.completed && <Ionicons name="checkmark-circle" size={24} color="#00ADB5" />}
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))}
+                                </Animated.View>
+                            )}
+                        </Animated.View>
+                    ))
 
 
-                    )}
+                }
             </ScrollView>
         </SafeAreaView>
     );
@@ -223,40 +301,15 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#222831'
     },
-    loaderContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#222831'
-    },
-    loadingText: {
-        color: '#EEEEEE',
-        marginTop: 10,
-        fontFamily: 'Din-Round',
-        fontSize: 16
-    },
 
-    welcomeContainer: {
-        marginBottom: 25,
-        marginTop: 10,
-    },
-    welcomeTitle: {
-        color: '#fff',
-        fontSize: 26,
-        marginBottom: 4,
-    },
-    userName: {
-        color: '#EEEEEE',
-        fontSize: 18,
-        opacity: 0.9,
-    },
+
     logoutButton: {
         position: 'absolute',
         right: 1,
         zIndex: 2,
         top: 7.5,
+        marginRight: 5,
     },
-
 
     scrollContainer: {
         padding: 20
@@ -452,49 +505,117 @@ const styles = StyleSheet.create({
         width: '100%',
         gap: 12,
     },
-    skeletonModule: {
-        height: 80,
-        borderRadius: 12,
-        backgroundColor: '#393E46',
-        overflow: 'hidden', // Importante para contener el shimmer
-        position: 'relative', // Para posicionar el shimmer correctamente
-        marginBottom: 12,
+
+    headerIcons: {
+        position: 'absolute',
+        right: 0,
+        top: 7.5,
+        flexDirection: 'row',
+        gap: 15,
     },
-    skeletonContent: {
+    profileButton: {
+        marginTop: 2,
+    },
+
+
+    /*Dropdown*/
+
+    profileSection: {
+        marginTop: 8,
+    },
+    profileInfo: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
-        height: '100%',
+        position: 'relative',
     },
-    skeletonIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+    profileIcon: {
+        marginRight: 10,
+    },
+
+    chevronIcon: {
+        marginLeft: 8,
+        marginTop: 2,
+    },
+
+    headerContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 25,
+        paddingHorizontal: 1,
+        position: 'relative',
+        marginTop: 12,
+    },
+    profileContainer: {
+        alignItems: 'flex-end',
+    },
+    profileContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    profileTextContainer: {
+        alignItems: 'flex-end',
+    },
+    userName: {
+        color: '#EEEEEE',
+        fontSize: 16,
+        fontFamily: 'Din-Round',
+        maxWidth: 150,
+    },
+    dropdownMenu: {
+        position: 'absolute',
+        right: 10,
+        top: 45,
+        backgroundColor: '#393E46',
+        borderRadius: 12,
+        paddingVertical: 8,
+        width: 180,
+        elevation: 5,
+        zIndex: 100,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 15,
+    },
+    menuItemText: {
+        color: '#EEEEEE',
+        fontSize: 16,
+        marginLeft: 12,
+        fontFamily: 'Din-Round',
+    },
+    divider: {
+        height: 1,
         backgroundColor: '#4A4F57',
+        marginVertical: 4,
     },
-    skeletonTextContainer: {
+    dropdownOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 99,
+    },
+    welcomeTitle: {
+        color: '#fff',
+        fontSize: 26,
+        marginBottom: 4,
+    },
+
+    loaderContainer: {
         flex: 1,
-        marginLeft: 16,
-        gap: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#222831',
     },
-    skeletonTitle: {
-        height: 16,
-        width: '70%',
-        backgroundColor: '#4A4F57',
-        borderRadius: 4,
+    loadingText: {
+        color: '#00ADB5',
+        fontSize: 22,
+        marginTop: 20,
+        fontFamily: 'Din-Round',
+        opacity: 0.9,
     },
-    skeletonDescription: {
-        height: 12,
-        width: '50%',
-        backgroundColor: '#4A4F57',
-        borderRadius: 4,
-    },
-    skeletonArrow: {
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        backgroundColor: '#4A4F57',
-    },
+
+
 
 });
 
